@@ -1,0 +1,24 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+
+    <f:section title="Nexus Repository">
+        <j:scope>
+            <j:set var="configs" value="${descriptor.configs}"/>
+            <j:set var="configDescriptor" value="${descriptor.getConfigDescriptor()}"/>
+            <f:repeatable
+                    enableTopButton="true"
+                    field="configs"
+                    var="item"
+                    items="configs">
+                <st:include from="${configDescriptor}" page="${descriptor.configPage}"/>
+                <f:repeatableDeleteButton/>
+            </f:repeatable>
+        </j:scope>
+    </f:section>
+
+    <f:bottomButtonBar>
+        <f:submit value="Submit"/>
+        <f:apply value="Apply"/>
+    </f:bottomButtonBar>
+</j:jelly>

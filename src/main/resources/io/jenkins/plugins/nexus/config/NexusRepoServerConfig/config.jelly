@@ -1,0 +1,23 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+
+    <link rel="stylesheet" href="${rootURL}/plugin/jenkins-nexus-plugin/css/ui.css" type="text/css"/>
+
+    <div class="nexus-config-container">
+        <f:entry title="Display Name" field="displayName">
+            <f:textbox/>
+        </f:entry>
+        <f:entry title="Server ID" field="serverId">
+            <f:textbox/>
+        </f:entry>
+        <f:entry title="Server URL" field="serverUrl">
+            <f:textbox/>
+        </f:entry>
+        <f:entry title="Credentials" field="credentialsId">
+            <c:select/>
+        </f:entry>
+        <f:validateButton
+                title="Validate" progress="Validating..."
+                method="test" with="displayName,serverId,serverUrl,credentialsId"/>
+    </div>
+</j:jelly>

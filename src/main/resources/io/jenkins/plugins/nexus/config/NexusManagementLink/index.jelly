@@ -1,0 +1,18 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler"
+         xmlns:l="/lib/layout" xmlns:f="/lib/form">
+    <l:layout permission="${app.ADMINISTER}" norefresh="true" title="Nexus Repository">
+        <st:include it="${app}" page="sidepanel.jelly"/>
+        <l:main-panel>
+            <h1>Nexus Server</h1>
+            <f:form action="configure" method="POST" name="nexusManagementLink">
+                <j:scope>
+                    <j:set var="descriptor" value="${it.getGlobalConfigDescriptor()}"/>
+                    <j:set var="instance" value="${descriptor}"/>
+                    <j:set var="it" value="${descriptor}"/>
+                    <st:include it="${it}" from="${descriptor}" page="${descriptor.configPage}"/>
+                </j:scope>
+            </f:form>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>
