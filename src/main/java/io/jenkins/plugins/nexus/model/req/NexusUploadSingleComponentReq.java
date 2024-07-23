@@ -12,7 +12,7 @@ import lombok.ToString;
 
 @Setter
 @Getter
-public class UploadSingleComponentReq implements Serializable {
+public class NexusUploadSingleComponentReq implements Serializable {
     private static final long serialVersionUID = 1L;
     private String group;
     private String artifactId;

@@ -10,13 +10,12 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
 import io.jenkins.plugins.nexus.config.NexusRepoServerGlobalConfig;
-import io.jenkins.plugins.nexus.model.req.SearchComponentsReq;
-import io.jenkins.plugins.nexus.model.resp.NexusRepositoryComponentDetails;
+import io.jenkins.plugins.nexus.model.req.NexusSearchComponentsReq;
+import io.jenkins.plugins.nexus.model.resp.NexusComponentDetails;
 import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
 import io.jenkins.plugins.nexus.model.resp.NexusSearchComponentsResp;
 import io.jenkins.plugins.nexus.utils.NexusRepositoryClient;
 import io.jenkins.plugins.nexus.utils.Utils;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,7 +25,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
@@ -157,8 +155,8 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
             String[] ss = option.split(":");
             final String groupId = ss[0];
             final String artifactId = ss[1];
-            SearchComponentsReq.SearchComponentsReqBuilder reqBuilder =
-                    SearchComponentsReq.builder().groupId(groupId).artifactId(artifactId);
+            NexusSearchComponentsReq.NexusSearchComponentsReqBuilder reqBuilder =
+                    NexusSearchComponentsReq.builder().groupId(groupId).artifactId(artifactId);
 
             int loopNum = 0;
             String continuationToken = null;
@@ -169,7 +167,7 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
                 if (CollectionUtils.isEmpty(resp.getItems())) {
                     break;
                 }
-                for (NexusRepositoryComponentDetails c : resp.getItems()) {
+                for (NexusComponentDetails c : resp.getItems()) {
                     String version = c.version(groupId, artifactId);
                     if (Objects.nonNull(version)) {
                         versionSet.add(option + ":" + version);

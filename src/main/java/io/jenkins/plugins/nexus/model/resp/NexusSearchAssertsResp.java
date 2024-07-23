@@ -6,18 +6,14 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-/**
- * @author Bruce.Wu
- * @date 2024-07-22
- */
-@Setter
 @Getter
+@Setter
 @ToString
-public class NexusSearchComponentsResp implements Serializable {
+public class NexusSearchAssertsResp implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private List<NexusComponentDetails> items;
+    private List<NexusAssertDetails> items;
 
     private String continuationToken;
 }

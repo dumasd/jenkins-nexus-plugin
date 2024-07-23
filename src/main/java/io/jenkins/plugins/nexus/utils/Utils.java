@@ -46,4 +46,25 @@ public class Utils {
         }
         return builder.toString();
     }
+
+    public static boolean isFile(String pathString) {
+        File file = new File(pathString);
+        // 检查路径是否存在
+        if (file.exists()) {
+            return file.isFile();
+        } else {
+            return !pathString.endsWith(File.pathSeparator);
+        }
+    }
+
+    public static String getFileName(String path) {
+        if (isNullOrEmpty(path)) {
+            return "";
+        }
+        int idx = path.lastIndexOf(Constants.C_SLASH);
+        if (idx == path.length() - 1) {
+            return "";
+        }
+        return idx < 0 ? path : path.substring(idx + 1);
+    }
 }

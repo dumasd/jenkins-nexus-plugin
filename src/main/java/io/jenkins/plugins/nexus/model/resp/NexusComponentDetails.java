@@ -15,7 +15,7 @@ import org.apache.commons.lang.StringUtils;
 @Setter
 @Getter
 @ToString
-public class NexusRepositoryComponentDetails implements Serializable {
+public class NexusComponentDetails implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String id;

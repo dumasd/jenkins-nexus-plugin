@@ -10,12 +10,14 @@ import lombok.ToString;
 @Getter
 @ToString
 @Builder
-public class SearchComponentsReq implements Serializable {
+public class NexusSearchAssertsReq implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String groupId;
 
     private String artifactId;
+
+    private String version;
 
     private String continuationToken;
 }

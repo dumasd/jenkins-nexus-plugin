@@ -16,7 +16,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
 import io.jenkins.plugins.nexus.config.NexusRepoServerGlobalConfig;
-import io.jenkins.plugins.nexus.model.req.UploadSingleComponentReq;
+import io.jenkins.plugins.nexus.model.req.NexusUploadSingleComponentReq;
 import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
 import io.jenkins.plugins.nexus.utils.Logger;
 import io.jenkins.plugins.nexus.utils.NexusRepositoryClient;
@@ -121,20 +121,20 @@ public class NexusArtifactPublisher extends Recorder implements SimpleBuildStep,
         NexusRepositoryClient client =
                 new NexusRepositoryClient(nxRepoCfg.getServerUrl(), nxRepoCfg.getAuthorization());
         NexusRepositoryDetails nxRepo = client.getRepositoryDetails(env.expand(repository));
-        UploadSingleComponentReq req = new UploadSingleComponentReq();
+        NexusUploadSingleComponentReq req = new NexusUploadSingleComponentReq();
         req.setGroup(env.expand(groupId));
         req.setArtifactId(env.expand(artifactId));
         req.setPacking(env.expand(packing));
         req.setVersion(env.expand(version));
         req.setGeneratePom(generatePom);
-        List<UploadSingleComponentReq.FileAssert> fileAsserts = new LinkedList<>();
+        List<NexusUploadSingleComponentReq.FileAssert> fileAsserts = new LinkedList<>();
         FilePath[] paths = workspace.list(env.expand(includes), env.expand(excludes));
         if (ArrayUtils.isEmpty(paths)) {
             logger.log("There is no file to upload!!!!!!");
             return;
         }
         for (FilePath fp : paths) {
-            fileAsserts.add(new UploadSingleComponentReq.FileAssert(new File(fp.getRemote())));
+            fileAsserts.add(new NexusUploadSingleComponentReq.FileAssert(new File(fp.getRemote())));
         }
         req.setFileAsserts(fileAsserts);
         workspace.act(new UploadFileCallable(listener, client, nxRepo, req));
@@ -145,13 +145,13 @@ public class NexusArtifactPublisher extends Recorder implements SimpleBuildStep,
         private final TaskListener listener;
         private final NexusRepositoryClient client;
         private final NexusRepositoryDetails repositoryDetails;
-        private final UploadSingleComponentReq uploadSingleComponentReq;
+        private final NexusUploadSingleComponentReq uploadSingleComponentReq;
 
         public UploadFileCallable(
                 TaskListener listener,
                 NexusRepositoryClient client,
                 NexusRepositoryDetails repositoryDetails,
-                UploadSingleComponentReq uploadSingleComponentReq) {
+                NexusUploadSingleComponentReq uploadSingleComponentReq) {
             this.listener = listener;
             this.client = client;
             this.repositoryDetails = repositoryDetails;
@@ -182,6 +182,12 @@ public class NexusArtifactPublisher extends Recorder implements SimpleBuildStep,
     @Extension
     @Symbol("nexusArtifactPublish")
     public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
+
+        @NonNull
+        @Override
+        public String getDisplayName() {
+            return "Nexus Artifact Publisher";
+        }
 
         @Override
         public boolean isApplicable(Class<? extends AbstractProject> jobType) {
