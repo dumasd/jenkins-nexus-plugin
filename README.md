@@ -112,7 +112,8 @@ pipeline {
                         repository: 'raw-pp',
                         groupId: 'com.example',
                         artifactId: 'example-api',
-                        version: '1.0-SNAPSHOT')
+                        version: '1.0-SNAPSHOT',
+                        location: 'example/')
                 sh 'ls -hl'
             }
         }
@@ -120,3 +121,63 @@ pipeline {
 }
 ```
 
+### nexusArtifactDelete
+
+| 参数         | 参数名称     | 参数解释                   | 必填 |
+|------------|----------|------------------------|----|
+| serverId   | Server ID | 全局配置中的Nexus ID         | Y  |
+| repository | Repository | 仓库名称                   | Y  |
+| groupId    | GroupId  | Group ID               | Y  |
+| artifactId | ArtifactId |  Artifact ID           | Y  |
+| version    | Version  |  Version               | Y  |
+
+
+#### Freestyle 作业
+
+在 Add build step（增加构建步骤）选择 Nexus Artifact Deleter。
+
+![img.png](images/img5-1.png)
+
+填写配置。
+
+![img.png](images/img5-2.png)
+
+#### Pipeline 作业
+
+```groovy
+pipeline {
+    agent any
+    stages {
+        stage('Hello') {
+            steps {
+                nexusArtifactDelete(
+                        serverId: 'nexus-raw',
+                        repository: 'raw-pp',
+                        groupId: 'com.example',
+                        artifactId: 'example-api',
+                        version: '1.0-SNAPSHOT')
+            }
+        }
+    }
+}
+```
+
+### nexusArtifactChoices
+
+| 参数         | 参数名称                                      | 参数解释 | 必填 |
+|------------|-------------------------------------------|----|----|
+| name       | Name (名称)                                 | 参数名称 | Y  |
+| serverId   | Server ID (服务ID)                          | 全局配置中的Nexus ID | Y  |
+| repository | Repository (仓库)                           | 仓库名称 | Y  |
+| groupIdArtifactIds    | GroupId:ArtifactId (GroupId:ArtifactId列表) |   制品的GroupId和ArtifactId列表。格式为：[GroupId:ArtifactId]。 多个选项使用换行分隔。 | Y  |
+| artifactId | ArtifactId                                | Artifact ID | Y  |
+| visibleItemCount    | Visible Item Count(列表数量)                | GroupId:ArtifactId列表展示数量 | Y  |
+| maxVersionCount    | Max Version Count(最大版本数量)                 | 从Nexus仓库查找的最大版本数量 | Y  |
+
+勾选`参数化构建过程（This project is parameterized）`，选择 `Nexus Artifact Choices Parameter`：
+
+![img.png](images/img10-1.png)
+
+填写配置：
+
+![img.png](images/img10-2.png)
