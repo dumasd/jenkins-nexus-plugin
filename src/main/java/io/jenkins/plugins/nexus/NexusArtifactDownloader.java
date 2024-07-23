@@ -164,8 +164,8 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
         public Void invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
             Logger logger = new Logger(NexusArtifactDownloader.NAME, listener);
             logger.log(
-                    "Downloading from repository. serverUrl: %s, repository: %s, groupId: %s, artifactId: %s, version: %s",
-                    nxRepoCfg.getServerUrl(), repository, groupId, artifactId, version);
+                    "Downloading from repository. serverUrl: %s, repository: %s, groupId: %s, artifactId: %s, version: %s, location: %s",
+                    nxRepoCfg.getServerUrl(), repository, groupId, artifactId, version, location);
             NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg);
             NexusRepositoryDetails nxRepo = client.getRepositoryDetails(repository);
             NexusSearchAssertsReq.NexusSearchAssertsReqBuilder reqBuilder = NexusSearchAssertsReq.builder()

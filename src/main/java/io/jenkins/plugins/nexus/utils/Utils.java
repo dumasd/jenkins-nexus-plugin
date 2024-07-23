@@ -53,7 +53,7 @@ public class Utils {
         if (file.exists()) {
             return file.isFile();
         } else {
-            return !pathString.endsWith(File.pathSeparator);
+            return !(pathString.endsWith("/") || pathString.endsWith("\\\\"));
         }
     }
 
