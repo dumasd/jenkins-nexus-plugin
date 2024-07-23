@@ -4,6 +4,7 @@ import io.jenkins.plugins.nexus.utils.Utils;
 import java.io.File;
 import java.io.Serializable;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -36,6 +37,14 @@ public class UploadSingleComponentReq implements Serializable {
         public String fileExt() {
             return Utils.getFileExt(file);
         }
+    }
+
+    public String assertsPrintInfo() {
+        String s = "";
+        if (fileAsserts != null && !fileAsserts.isEmpty()) {
+            s = fileAsserts.stream().map(e -> e.getFile().getAbsolutePath()).collect(Collectors.joining(","));
+        }
+        return "[" + s + "]";
     }
 
     public String toDirectory() {

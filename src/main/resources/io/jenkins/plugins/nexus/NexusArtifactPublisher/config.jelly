@@ -7,7 +7,7 @@
     <f:entry title="Repository" field="repository">
         <f:textbox/>
     </f:entry>
-    <f:entry title="GroupId" field="group">
+    <f:entry title="GroupId" field="groupId">
         <f:textbox/>
     </f:entry>
     <f:entry title="ArtifactId" field="artifactId">
@@ -27,7 +27,7 @@
     <f:entry title="Include Files" field="includes">
         <f:textbox/>
     </f:entry>
-    <f:entry title="Excludes Files" field="excludes">
+    <f:entry title="Exclude Files" field="excludes">
         <f:textbox/>
     </f:entry>
 </j:jelly>

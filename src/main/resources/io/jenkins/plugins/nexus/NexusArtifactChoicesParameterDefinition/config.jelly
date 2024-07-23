@@ -1,0 +1,30 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
+         xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form"
+         xmlns:i="jelly:fmt" xmlns:p="/lib/hudson/project">
+    <f:entry title="${%Name}" field="name" help="/help/parameter/name.html">
+        <f:textbox name="parameter.name" value="${instance.name}"/>
+    </f:entry>
+    <f:entry title="${%ServerId}" field="serverId">
+        <f:select/>
+    </f:entry>
+    <f:entry title="${%Repository}" field="repository">
+        <f:textbox name="parameter.repository" value="${instance.repository}"/>
+    </f:entry>
+    <f:entry title="${%GroupIdArtifactIdPairList}" field="groupIdArtifactIds">
+        <f:textarea name="parameter.groupIdArtifactIds" value="${instance.groupIdArtifactIds}"/>
+    </f:entry>
+    <f:entry title="${%VisibleItemCount}" field="visibleItemCount">
+        <f:textbox name="parameter.visibleItemCount"/>
+    </f:entry>
+    <f:entry title="${%MaxVersionCount}" field="maxVersionCount">
+        <f:textbox name="parameter.maxVersionCount"/>
+    </f:entry>
+    <f:entry title="${%Description}" field="description" help="/help/parameter/description.html">
+        <f:textarea
+                name="parameter.description" value="${instance.description}"
+                codemirror-mode="${app.markupFormatter.codeMirrorMode}"
+                codemirror-config="${app.markupFormatter.codeMirrorConfig}"
+                previewEndpoint="/markupFormatter/previewDescription"/>
+    </f:entry>
+</j:jelly>

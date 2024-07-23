@@ -1,16 +1,21 @@
 package io.jenkins.plugins.nexus.utils;
 
 import com.alibaba.fastjson2.JSON;
+import io.jenkins.plugins.nexus.model.req.SearchComponentsReq;
 import io.jenkins.plugins.nexus.model.req.UploadSingleComponentReq;
 import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
+import io.jenkins.plugins.nexus.model.resp.NexusSearchComponentsResp;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.java.Log;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.entity.mime.FileBody;
@@ -23,6 +28,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.net.URIBuilder;
 
 /**
  * Nexus客户端
@@ -32,6 +38,7 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
  */
 @Setter
 @Getter
+@Log
 public class NexusRepositoryClient implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -153,6 +160,46 @@ public class NexusRepositoryClient implements Serializable {
                 httpClient.execute(request, new BasicHttpClientResponseHandler());
             }
         } catch (IOException e) {
+            throw new NexusClientException(e);
+        }
+    }
+
+    public NexusSearchComponentsResp searchComponents(NexusRepositoryDetails nxRepo, SearchComponentsReq req) {
+        if (!NexusRepositoryFormat.isSupported(nxRepo.getFormat())) {
+            throw new NexusClientException("Only support maven2, raw format");
+        }
+        NexusRepositoryFormat format = NexusRepositoryFormat.valueOf(nxRepo.getFormat());
+        try (CloseableHttpClient httpClient = buildHttpClient()) {
+            URIBuilder uriBuilder =
+                    new URIBuilder(url + "/service/rest/v1/search").addParameter("repository", nxRepo.getName());
+            if (NexusRepositoryFormat.raw.equals(format)) {
+                String q = Utils.toNexusDictionary(req.getGroupId(), req.getArtifactId());
+                uriBuilder.addParameter("q", "\"" + q + "\"");
+            } else if (NexusRepositoryFormat.maven2.equals(format)) {
+                uriBuilder.addParameter("group", req.getGroupId()).addParameter("name", req.getArtifactId());
+            } else {
+                throw new NexusClientException("Only support maven2, raw format");
+            }
+
+            if (StringUtils.isNotEmpty(req.getContinuationToken())) {
+                uriBuilder.addParameter("continuationToken", req.getContinuationToken());
+            }
+
+            log.log(Level.INFO, "Query raw components. repository={0}, uri={1}", new Object[] {
+                nxRepo.getName(), uriBuilder.toString()
+            });
+            HttpGet httpGet = new HttpGet(uriBuilder.toString());
+            if (Utils.isNotEmpty(authorization)) {
+                httpGet.addHeader(HttpHeaders.AUTHORIZATION, authorization);
+            }
+            return httpClient.execute(httpGet, new AbstractHttpClientResponseHandler<>() {
+                @Override
+                public NexusSearchComponentsResp handleEntity(HttpEntity entity) throws IOException {
+                    byte[] bs = EntityUtils.toByteArray(entity);
+                    return JSON.parseObject(bs, NexusSearchComponentsResp.class);
+                }
+            });
+        } catch (Exception e) {
             throw new NexusClientException(e);
         }
     }

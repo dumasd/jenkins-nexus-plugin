@@ -60,7 +60,7 @@ public class NexusArtifactPublisher extends Recorder implements SimpleBuildStep,
     /**
      * Group
      */
-    private final String group;
+    private final String groupId;
     /**
      * 制品ID
      */
@@ -80,10 +80,10 @@ public class NexusArtifactPublisher extends Recorder implements SimpleBuildStep,
 
     @DataBoundConstructor
     public NexusArtifactPublisher(
-            String serverId, String repository, String group, String artifactId, String version, String includes) {
+            String serverId, String repository, String groupId, String artifactId, String version, String includes) {
         this.serverId = serverId;
         this.repository = repository;
-        this.group = group;
+        this.groupId = groupId;
         this.artifactId = artifactId;
         this.version = version;
         this.includes = includes;
@@ -122,7 +122,7 @@ public class NexusArtifactPublisher extends Recorder implements SimpleBuildStep,
                 new NexusRepositoryClient(nxRepoCfg.getServerUrl(), nxRepoCfg.getAuthorization());
         NexusRepositoryDetails nxRepo = client.getRepositoryDetails(env.expand(repository));
         UploadSingleComponentReq req = new UploadSingleComponentReq();
-        req.setGroup(env.expand(group));
+        req.setGroup(env.expand(groupId));
         req.setArtifactId(env.expand(artifactId));
         req.setPacking(env.expand(packing));
         req.setVersion(env.expand(version));
@@ -170,7 +170,7 @@ public class NexusArtifactPublisher extends Recorder implements SimpleBuildStep,
                     uploadSingleComponentReq.getArtifactId(),
                     uploadSingleComponentReq.getVersion(),
                     uploadSingleComponentReq.getPacking(),
-                    uploadSingleComponentReq.getFileAsserts().toString());
+                    uploadSingleComponentReq.assertsPrintInfo());
             client.uploadSingleComponent(repositoryDetails, uploadSingleComponentReq);
             return true;
         }

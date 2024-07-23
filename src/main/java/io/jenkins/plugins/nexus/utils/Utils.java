@@ -22,10 +22,15 @@ public class Utils {
         }
     }
 
+    public static String toNexusDictionary(String groupId, String artifactId) {
+        String groupPath = groupId.replace('.', '/');
+        return "/" + Utils.splicePath(groupPath, artifactId) + "/";
+    }
+
     public static String splicePath(String... ps) {
         StringBuilder builder = new StringBuilder();
         for (String p : ps) {
-            if (!isNullOrEmpty(p)) {
+            if (isNotEmpty(p)) {
                 if (builder.length() != 0) {
                     if (builder.toString().endsWith(Constants.SLASH) && p.startsWith(Constants.SLASH)) {
                         builder.append(p.substring(1));

@@ -16,6 +16,10 @@ public enum NexusRepositoryFormat {
     bower,
     ;
 
+    public boolean matches(String name) {
+        return this.name().equals(name);
+    }
+
     public static boolean isSupported(String format) {
         return maven2.name().equals(format) || raw.name().equals(format);
     }
