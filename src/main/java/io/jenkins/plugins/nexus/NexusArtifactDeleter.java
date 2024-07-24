@@ -89,8 +89,7 @@ public class NexusArtifactDeleter extends Builder implements SimpleBuildStep {
         }
         Logger logger = new Logger(NAME, listener);
         NexusRepoServerConfig nxRepoCfg = nxRepoCfgOp.get();
-        NexusRepositoryClient client =
-                new NexusRepositoryClient(nxRepoCfg.getServerUrl(), nxRepoCfg.getAuthorization());
+        NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg);
         NexusRepositoryDetails nxRepo = client.getRepositoryDetails(env.expand(repository));
         NexusSearchComponentsReq.NexusSearchComponentsReqBuilder reqBuilder =
                 NexusSearchComponentsReq.builder().groupId(groupId).artifactId(artifactId);

@@ -118,8 +118,7 @@ public class NexusArtifactPublisher extends Recorder implements SimpleBuildStep,
             throw new IOException("Nexus repository server not found. serverId=" + serverId);
         }
         NexusRepoServerConfig nxRepoCfg = nxRepoCfgOp.get();
-        NexusRepositoryClient client =
-                new NexusRepositoryClient(nxRepoCfg.getServerUrl(), nxRepoCfg.getAuthorization());
+        NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg);
         NexusRepositoryDetails nxRepo = client.getRepositoryDetails(env.expand(repository));
         NexusUploadSingleComponentReq req = new NexusUploadSingleComponentReq();
         req.setGroup(env.expand(groupId));

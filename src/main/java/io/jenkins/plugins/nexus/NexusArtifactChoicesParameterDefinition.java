@@ -14,7 +14,9 @@ import io.jenkins.plugins.nexus.model.req.NexusSearchComponentsReq;
 import io.jenkins.plugins.nexus.model.resp.NexusComponentDetails;
 import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
 import io.jenkins.plugins.nexus.model.resp.NexusSearchComponentsResp;
+import io.jenkins.plugins.nexus.model.resp.SearchDockerTagsResp;
 import io.jenkins.plugins.nexus.utils.NexusRepositoryClient;
+import io.jenkins.plugins.nexus.utils.NexusRepositoryFormat;
 import io.jenkins.plugins.nexus.utils.Utils;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,7 +39,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.verb.POST;
 
 /**
  * @author Bruce.Wu
@@ -149,37 +150,46 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
             ListBoxModel items = new ListBoxModel();
             NexusRepoServerConfig nxRepoCfg =
                     NexusRepoServerGlobalConfig.getConfig(serverId).orElseThrow();
-            String auth = nxRepoCfg.getAuthorization();
-            NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg.getServerUrl(), auth);
-            NexusRepositoryDetails nxRepo = client.getRepositoryDetails(repository);
+            NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg);
             String[] ss = option.split(":");
             final String groupId = ss[0];
             final String artifactId = ss[1];
             NexusSearchComponentsReq.NexusSearchComponentsReqBuilder reqBuilder =
                     NexusSearchComponentsReq.builder().groupId(groupId).artifactId(artifactId);
-
-            int loopNum = 0;
-            String continuationToken = null;
-            Set<String> versionSet = new LinkedHashSet<>();
-            while (loopNum < 50 && versionSet.size() < limits) {
-                reqBuilder.continuationToken(continuationToken);
-                NexusSearchComponentsResp resp = client.searchComponents(nxRepo, reqBuilder.build());
-                if (CollectionUtils.isEmpty(resp.getItems())) {
-                    break;
+            if (client.isDocker()) {
+                SearchDockerTagsResp resp = client.searchDockerTags(reqBuilder.build());
+                String baseUrl = StringUtils.removeStart(client.getUrl(), "https://");
+                baseUrl = StringUtils.removeStart(baseUrl, "http://");
+                for (int i = resp.getTags().size() - 1; i >= 0; i--) {
+                    String tag = resp.getTags().get(i);
+                    String image = String.format("%s/%s/%s", baseUrl, resp.getName(), tag);
+                    items.add(image, image);
                 }
-                for (NexusComponentDetails c : resp.getItems()) {
-                    String version = c.version(groupId, artifactId);
-                    if (Objects.nonNull(version)) {
-                        versionSet.add(option + ":" + version);
+            } else {
+                NexusRepositoryDetails nxRepo = client.getRepositoryDetails(repository);
+                int loopNum = 0;
+                String continuationToken = null;
+                Set<String> versionSet = new LinkedHashSet<>();
+                while (loopNum < 50 && versionSet.size() < limits) {
+                    reqBuilder.continuationToken(continuationToken);
+                    NexusSearchComponentsResp resp = client.searchComponents(nxRepo, reqBuilder.build());
+                    if (CollectionUtils.isEmpty(resp.getItems())) {
+                        break;
                     }
+                    for (NexusComponentDetails c : resp.getItems()) {
+                        String version = c.version(groupId, artifactId);
+                        if (Objects.nonNull(version)) {
+                            versionSet.add(option + ":" + version);
+                        }
+                    }
+                    if (StringUtils.isBlank(resp.getContinuationToken())) {
+                        break;
+                    }
+                    continuationToken = resp.getContinuationToken();
+                    loopNum++;
                 }
-                if (StringUtils.isBlank(resp.getContinuationToken())) {
-                    break;
-                }
-                continuationToken = resp.getContinuationToken();
-                loopNum++;
+                versionSet.forEach(e -> items.add(e, e));
             }
-            versionSet.forEach(e -> items.add(e, e));
             return items;
         }
 
@@ -191,15 +201,6 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
             }
         }
 
-        @POST
-        public FormValidation doCheckRepository(@QueryParameter("repository") String repository) {
-            if (StringUtils.isEmpty(repository)) {
-                return FormValidation.error("Nexus Repository is required");
-            }
-            return FormValidation.ok();
-        }
-
-        @POST
         public FormValidation doCheckVisibleItemCount(@QueryParameter String value) {
             if (Utils.isNotEmpty(value)) {
                 try {
@@ -214,7 +215,6 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
             return FormValidation.ok();
         }
 
-        @POST
         public FormValidation doCheckMaxVersionCount(@QueryParameter String value) {
             if (Utils.isNotEmpty(value)) {
                 try {
@@ -224,6 +224,34 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
                     }
                 } catch (NumberFormatException e) {
                     return FormValidation.error("Max version count must be a number");
+                }
+            }
+            return FormValidation.ok();
+        }
+
+        public FormValidation doTest(
+                @QueryParameter("repository") String repository, @QueryParameter("serverId") String serverId) {
+            if (Utils.isNullOrEmpty(serverId)) {
+                return FormValidation.error("Nexus Server Id is required");
+            }
+            NexusRepoServerConfig nxRepoCfg =
+                    NexusRepoServerGlobalConfig.getConfig(serverId).orElse(null);
+            if (Objects.isNull(nxRepoCfg)) {
+                return FormValidation.error("Nexus Server ID not found");
+            }
+            if (!nxRepoCfg.isDocker() && Utils.isNullOrEmpty(repository)) {
+                return FormValidation.error("Repository is required when nexus server is not docker !!!");
+            }
+            if (!nxRepoCfg.isDocker()) {
+                try {
+                    NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg);
+                    NexusRepositoryDetails nxRepo = client.getRepositoryDetails(repository);
+                    if (NexusRepositoryFormat.docker.matches(nxRepo.getFormat())) {
+                        return FormValidation.error("Repository is docker when nexus server is not docker !!!");
+                    }
+                } catch (Exception e) {
+                    log.log(Level.SEVERE, "Search nexus repository error", e);
+                    return FormValidation.error(e, "Search nexus repository error");
                 }
             }
             return FormValidation.ok();

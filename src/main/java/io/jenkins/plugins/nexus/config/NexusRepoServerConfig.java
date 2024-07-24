@@ -41,12 +41,18 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
     private String serverId;
     private String serverUrl;
     private String credentialsId;
+    private boolean docker;
 
     @DataBoundConstructor
     public NexusRepoServerConfig(String displayName, String serverId, String serverUrl) {
         this.displayName = displayName;
         this.serverId = serverId;
         this.serverUrl = serverUrl;
+    }
+
+    @DataBoundSetter
+    public void setDocker(boolean docker) {
+        this.docker = docker;
     }
 
     @DataBoundSetter
@@ -92,7 +98,8 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
                 @QueryParameter("displayName") String displayName,
                 @QueryParameter("serverId") String serverId,
                 @QueryParameter("serverUrl") String serverUrl,
-                @QueryParameter("credentialsId") String credentialsId)
+                @QueryParameter("credentialsId") String credentialsId,
+                @QueryParameter("docker") boolean docker)
                 throws Exception {
             if (Utils.isNullOrEmpty(displayName)) {
                 return FormValidation.error("Please input Display Name");
@@ -107,7 +114,7 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
                 return FormValidation.error("Invalid Server URL pattern");
             }
             String auth = credentialsIdToAuthorization(credentialsId);
-            NexusRepositoryClient client = new NexusRepositoryClient(serverUrl, auth);
+            NexusRepositoryClient client = new NexusRepositoryClient(serverUrl, auth, docker);
             client.check();
             return FormValidation.ok("Validate success");
         }

@@ -16,8 +16,11 @@
         <f:entry title="Credentials" field="credentialsId">
             <c:select/>
         </f:entry>
+        <f:entry title="Docker" field="docker">
+            <f:checkbox default="false"/>
+        </f:entry>
         <f:validateButton
                 title="Validate" progress="Validating..."
-                method="test" with="displayName,serverId,serverUrl,credentialsId"/>
+                method="test" with="displayName,serverId,serverUrl,credentialsId,docker"/>
     </div>
 </j:jelly>

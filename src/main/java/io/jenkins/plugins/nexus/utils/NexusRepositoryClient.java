@@ -9,6 +9,7 @@ import io.jenkins.plugins.nexus.model.req.NexusUploadSingleComponentReq;
 import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
 import io.jenkins.plugins.nexus.model.resp.NexusSearchAssertsResp;
 import io.jenkins.plugins.nexus.model.resp.NexusSearchComponentsResp;
+import io.jenkins.plugins.nexus.model.resp.SearchDockerTagsResp;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -20,7 +21,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.java.Log;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -45,7 +45,6 @@ import org.apache.hc.core5.net.URIBuilder;
  * @author Bruce.Wu
  * @date 2024-07-20
  */
-@Setter
 @Getter
 @Log
 public class NexusRepositoryClient implements Serializable {
@@ -56,15 +55,18 @@ public class NexusRepositoryClient implements Serializable {
 
     private final String authorization;
 
+    private final boolean docker;
+
     private static final int MAX_ASSERTS = 12;
 
-    public NexusRepositoryClient(String url, String authorization) {
+    public NexusRepositoryClient(String url, String authorization, boolean docker) {
         this.url = url;
         this.authorization = authorization;
+        this.docker = docker;
     }
 
     public NexusRepositoryClient(NexusRepoServerConfig cfg) {
-        this(cfg.getServerUrl(), cfg.getAuthorization());
+        this(cfg.getServerUrl(), cfg.getAuthorization(), cfg.isDocker());
     }
 
     private static CloseableHttpClient buildHttpClient() {
@@ -73,7 +75,7 @@ public class NexusRepositoryClient implements Serializable {
                     .setRedirectStrategy(DefaultRedirectStrategy.INSTANCE)
                     .build();
         } catch (Exception e) {
-            throw new RuntimeException("HttpClient构建失败", e);
+            throw new NexusClientException(e);
         }
     }
 
@@ -83,6 +85,9 @@ public class NexusRepositoryClient implements Serializable {
     public void check() {
         try (CloseableHttpClient httpClient = buildHttpClient()) {
             HttpGet request = new HttpGet(url);
+            if (docker) {
+                request = new HttpGet(url + "/v2/_catalog");
+            }
             if (Utils.isNotEmpty(authorization)) {
                 request.addHeader(HttpHeaders.AUTHORIZATION, authorization);
             }
@@ -297,6 +302,26 @@ public class NexusRepositoryClient implements Serializable {
                 }
                 httpClient.execute(httpDelete, new BasicHttpClientResponseHandler());
             }
+        } catch (IOException e) {
+            throw new NexusClientException(e);
+        }
+    }
+
+    public SearchDockerTagsResp searchDockerTags(NexusSearchComponentsReq req) {
+        String imageName = req.getGroupId() + "/" + req.getArtifactId();
+        try (CloseableHttpClient httpClient = buildHttpClient()) {
+            HttpGet request = new HttpGet(String.format("%s/v2/%s/tags/list", url, imageName));
+            if (Utils.isNotEmpty(authorization)) {
+                request.addHeader(HttpHeaders.AUTHORIZATION, authorization);
+            }
+            return httpClient.execute(request, new AbstractHttpClientResponseHandler<SearchDockerTagsResp>() {
+                @Override
+                public SearchDockerTagsResp handleEntity(HttpEntity entity) throws IOException {
+                    byte[] bs = EntityUtils.toByteArray(entity);
+                    EntityUtils.consume(entity);
+                    return JSON.parseObject(bs, SearchDockerTagsResp.class);
+                }
+            });
         } catch (IOException e) {
             throw new NexusClientException(e);
         }
