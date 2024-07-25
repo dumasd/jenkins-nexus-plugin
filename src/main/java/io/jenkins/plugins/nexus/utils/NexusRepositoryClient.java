@@ -1,5 +1,12 @@
 package io.jenkins.plugins.nexus.utils;
 
+import static io.jenkins.plugins.nexus.utils.Constants.DIRECTION;
+import static io.jenkins.plugins.nexus.utils.Constants.GROUP;
+import static io.jenkins.plugins.nexus.utils.Constants.NAME;
+import static io.jenkins.plugins.nexus.utils.Constants.REPOSITORY;
+import static io.jenkins.plugins.nexus.utils.Constants.SORT;
+import static io.jenkins.plugins.nexus.utils.Constants.VERSION;
+
 import com.alibaba.fastjson2.JSON;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
 import io.jenkins.plugins.nexus.model.dto.NexusDownloadFileDTO;
@@ -191,13 +198,17 @@ public class NexusRepositoryClient implements Serializable {
         }
         NexusRepositoryFormat format = NexusRepositoryFormat.valueOf(nxRepo.getFormat());
         try (CloseableHttpClient httpClient = buildHttpClient()) {
-            URIBuilder uriBuilder =
-                    new URIBuilder(url + "/service/rest/v1/search").addParameter("repository", nxRepo.getName());
+            URIBuilder uriBuilder = new URIBuilder(url + "/service/rest/v1/search")
+                    .addParameter(REPOSITORY, nxRepo.getName())
+                    .addParameter(DIRECTION, "desc");
             if (NexusRepositoryFormat.raw.equals(format)) {
                 String q = Utils.toNexusDictionary(req.getGroupId(), req.getArtifactId());
-                uriBuilder.addParameter("q", "\"" + q + "\"");
+                uriBuilder.addParameter("q", "\"" + q + "\"").addParameter(SORT, GROUP);
             } else if (NexusRepositoryFormat.maven2.equals(format)) {
-                uriBuilder.addParameter("group", req.getGroupId()).addParameter("name", req.getArtifactId());
+                uriBuilder
+                        .addParameter(GROUP, req.getGroupId())
+                        .addParameter(NAME, req.getArtifactId())
+                        .addParameter(SORT, VERSION);
             } else {
                 throw new NexusClientException("Only support maven2, raw format");
             }
@@ -236,12 +247,12 @@ public class NexusRepositoryClient implements Serializable {
                     new URIBuilder(url + "/service/rest/v1/search/assets").addParameter("repository", nxRepo.getName());
             if (NexusRepositoryFormat.raw.equals(format)) {
                 String q = Utils.toNexusDictionary(req.getGroupId(), req.getArtifactId());
-                uriBuilder.addParameter("group", q + req.getVersion());
+                uriBuilder.addParameter(GROUP, q + req.getVersion());
             } else if (NexusRepositoryFormat.maven2.equals(format)) {
                 uriBuilder
-                        .addParameter("group", req.getGroupId())
-                        .addParameter("name", req.getArtifactId())
-                        .addParameter("version", req.getVersion());
+                        .addParameter(GROUP, req.getGroupId())
+                        .addParameter(NAME, req.getArtifactId())
+                        .addParameter(VERSION, req.getVersion());
             } else {
                 throw new NexusClientException("Only support maven2, raw format");
             }
