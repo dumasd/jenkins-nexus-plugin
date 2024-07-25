@@ -13,7 +13,6 @@ import io.jenkins.plugins.nexus.model.resp.SearchDockerTagsResp;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
@@ -278,13 +277,11 @@ public class NexusRepositoryClient implements Serializable {
                         if (Objects.nonNull(parent) && !parent.exists() && !parent.mkdirs()) {
                             throw new IOException("Mkdir error");
                         }
-
                         if (file.exists() && !file.delete()) {
                             throw new IOException("Delete old file fail. file:" + file.getName());
                         }
-                        try (InputStream is = entity.getContent();
-                                FileOutputStream fos = new FileOutputStream(file)) {
-                            is.transferTo(fos);
+                        try (FileOutputStream fos = new FileOutputStream(file)) {
+                            entity.writeTo(fos);
                             fos.flush();
                         }
                         EntityUtils.consume(entity);
