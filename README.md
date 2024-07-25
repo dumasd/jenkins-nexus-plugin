@@ -2,7 +2,7 @@
 
 ## 介绍
 
-使用 Nexus3 仓库服务做制品管理。此插件仅支持 Nexus-3.x 版本，制品管理目前只支持 maven2 和 raw 类型的仓库。
+使用 Nexus3 仓库服务做制品管理。此插件仅支持 Nexus-3.x 版本。
 
 ## 特性
 
@@ -15,12 +15,13 @@
 
 ### 全局配置
 
-| 参数            | 参数名称 | 参数解释                        |
-|---------------|---|-----------------------------|
-| serverId      | Server ID | Nexus 服务ID                  |
-| serverUrl     | Server URL | Nexus 服务地址                  |
-| credentialsId | Credentials | Nexus 服务访问凭据ID              |
-| displayName   | Display Name  | 展示名称                        |
+| 参数            | 参数名称         | 参数解释           |
+|---------------|--------------|----------------|
+| serverId      | Server ID    | Nexus 服务ID     |
+| serverUrl     | Server URL   | Nexus 服务地址     |
+| credentialsId | Credentials  | Nexus 服务访问凭据ID |
+| displayName   | Display Name | 展示名称           |
+| docker        | Docker       | 是否是Docker仓库地址  |
 
 在Jenkins系统管理 -> Nexus，配置 Nexus 服务访问凭证和地址。
 
@@ -39,6 +40,8 @@
 | packing      | Packing | 全局配置中的Nexus ID（maven2仓库可用） | N  |
 | includes   | Include Files | 包含文件，`dist/**`   `target/**.jar` | Y  |
 | excludes   | Excludes Files | 排除文件，`*.svg,*.png`     | N |
+
+> Tip：目前仅支持往 Nexus`raw`和`maven2（release）`格式，`hosted`类型的仓库上传制品。
 
 #### Freestyle 作业
 
@@ -89,6 +92,8 @@ pipeline {
 | version    | Version  |  Version               | Y  |
 | location   | Location | 本地的下载位置，不填默认在workspace根目录，如果是文件夹必须以'/'结尾 | N |
 
+> Tip：支持从 Nexus`raw`和`maven2`格式的仓库下载制品。
+
 #### Freestyle 作业
 
 在 Add build step（增加构建步骤）选择 Nexus Artifact Downloader。
@@ -131,6 +136,7 @@ pipeline {
 | artifactId | ArtifactId |  Artifact ID           | Y  |
 | version    | Version  |  Version               | Y  |
 
+> Tip：支持删除 Nexus`raw`和`maven2`格式仓库下的制品。
 
 #### Freestyle 作业
 
@@ -174,6 +180,8 @@ pipeline {
 | visibleItemCount    | Visible Item Count(列表数量)                | GroupId:ArtifactId列表展示数量 | Y  |
 | maxVersionCount    | Max Version Count(最大版本数量)                 | 从Nexus仓库查找的最大版本数量 | Y  |
 
+> Tip：支持选择 Nexus`raw`、`maven2`和`docker`格式仓库下的制品。
+
 勾选`参数化构建过程（This project is parameterized）`，选择 `Nexus Artifact Choices Parameter`：
 
 ![img.png](images/img10-1.png)
@@ -181,3 +189,9 @@ pipeline {
 填写配置：
 
 ![img.png](images/img10-2.png)
+
+运行流水线后，会将指定的groupId-artifactId下版本拉下来，通过列表展示，选择制品制品的版本，选择后的结果会放到`name`参数指定的环境变量名称里面
+
+![img.png](images/img10-3.png)
+![img.png](images/img10-4.png)
+![img.png](images/img10-5.png)
