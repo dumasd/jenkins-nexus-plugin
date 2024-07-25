@@ -69,6 +69,10 @@ public class NexusRepositoryClient implements Serializable {
         this(cfg.getServerUrl(), cfg.getAuthorization(), cfg.isDocker());
     }
 
+    public NexusRepositoryClient(NexusRepoServerConfig cfg, String authorization) {
+        this(cfg.getServerUrl(), authorization, cfg.isDocker());
+    }
+
     private static CloseableHttpClient buildHttpClient() {
         try {
             return HttpClientBuilder.create()

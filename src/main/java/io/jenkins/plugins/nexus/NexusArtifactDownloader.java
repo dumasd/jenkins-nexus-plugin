@@ -30,7 +30,6 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.tasks.SimpleBuildStep;
@@ -111,19 +110,19 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
             @NonNull Launcher launcher,
             @NonNull TaskListener listener)
             throws InterruptedException, IOException {
-        Optional<NexusRepoServerConfig> nxRepoCfgOp = NexusRepoServerGlobalConfig.getConfig(serverId);
-        if (nxRepoCfgOp.isEmpty()) {
-            throw new IOException("Nexus repository server not found. serverId=" + serverId);
-        }
+        NexusRepoServerConfig nxRepoCfg =
+                NexusRepoServerGlobalConfig.getConfig(serverId).orElseThrow();
         FilePath target = workspace;
         String locationEx = env.expand(location);
         if (Utils.isNotEmpty(locationEx)) {
             target = workspace.child(locationEx);
         }
+        String auth = nxRepoCfg.getAuthorization();
         target.act(new RemoteDownloader(
                 listener,
                 locationEx,
-                nxRepoCfgOp.get(),
+                auth,
+                nxRepoCfg,
                 env.expand(repository),
                 env.expand(groupId),
                 env.expand(artifactId),
@@ -134,6 +133,7 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
     private static class RemoteDownloader extends MasterToSlaveFileCallable<Void> {
         private final TaskListener listener;
         private final String location;
+        private final String auth;
         private final NexusRepoServerConfig nxRepoCfg;
         private final String repository;
         private final String groupId;
@@ -144,6 +144,7 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
         private RemoteDownloader(
                 TaskListener listener,
                 String location,
+                String auth,
                 NexusRepoServerConfig nxRepoCfg,
                 String repository,
                 String groupId,
@@ -152,6 +153,7 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
                 int maxAssertNum) {
             this.listener = listener;
             this.location = location;
+            this.auth = auth;
             this.nxRepoCfg = nxRepoCfg;
             this.repository = repository;
             this.groupId = groupId;
@@ -166,7 +168,7 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
             logger.log(
                     "Downloading from repository. serverUrl: %s, repository: %s, groupId: %s, artifactId: %s, version: %s, location: %s",
                     nxRepoCfg.getServerUrl(), repository, groupId, artifactId, version, location);
-            NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg);
+            NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg, auth);
             NexusRepositoryDetails nxRepo = client.getRepositoryDetails(repository);
             NexusSearchAssertsReq.NexusSearchAssertsReqBuilder reqBuilder = NexusSearchAssertsReq.builder()
                     .groupId(groupId)
