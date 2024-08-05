@@ -1,0 +1,15 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler"
+         xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson"
+         xmlns:f="/lib/form" xmlns:i="jelly:fmt">
+    <t:summary icon="/plugin/jenkins-nexus-plugin/images/sonatype-repository-icon.svg">
+        <strong>Nexus Publish Artifacts</strong>
+        <j:if test="${!empty(it.artifacts)}">
+            <ul>
+                <j:forEach var="artifact" items="${it.artifacts}">
+                    <li>${artifact.groupId}:${artifact.artifactId}:${artifact.version}</li>
+                </j:forEach>
+            </ul>
+        </j:if>
+    </t:summary>
+</j:jelly>

@@ -14,6 +14,7 @@ import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import io.jenkins.plugins.nexus.action.NexusArtifactPublisherAction;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
 import io.jenkins.plugins.nexus.config.NexusRepoServerGlobalConfig;
 import io.jenkins.plugins.nexus.model.req.NexusUploadSingleComponentReq;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import jenkins.tasks.SimpleBuildStep;
 import lombok.Getter;
@@ -137,6 +139,14 @@ public class NexusArtifactPublisher extends Recorder implements SimpleBuildStep,
         }
         req.setFileAsserts(fileAsserts);
         workspace.act(new UploadFileCallable(listener, client, nxRepo, req));
+
+        // 添加结果
+        NexusArtifactPublisherAction action = run.getAction(NexusArtifactPublisherAction.class);
+        if (Objects.isNull(action)) {
+            action = new NexusArtifactPublisherAction();
+            run.addAction(action);
+        }
+        action.addArtifact(req.getGroup(), req.getArtifactId(), req.getVersion());
     }
 
     public static class UploadFileCallable implements Callable<Boolean, IOException> {

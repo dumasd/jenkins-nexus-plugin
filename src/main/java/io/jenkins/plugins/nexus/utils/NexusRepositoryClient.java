@@ -35,11 +35,9 @@ import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.entity.mime.FileBody;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
-import org.apache.hc.client5.http.impl.DefaultRedirectStrategy;
 import org.apache.hc.client5.http.impl.classic.AbstractHttpClientResponseHandler;
 import org.apache.hc.client5.http.impl.classic.BasicHttpClientResponseHandler;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
@@ -79,21 +77,11 @@ public class NexusRepositoryClient implements Serializable {
         this(cfg.getServerUrl(), authorization, cfg.isDocker());
     }
 
-    private static CloseableHttpClient buildHttpClient() {
-        try {
-            return HttpClientBuilder.create()
-                    .setRedirectStrategy(DefaultRedirectStrategy.INSTANCE)
-                    .build();
-        } catch (Exception e) {
-            throw new NexusClientException(e);
-        }
-    }
-
     /**
      * 检查
      */
     public void check() {
-        try (CloseableHttpClient httpClient = buildHttpClient()) {
+        try (CloseableHttpClient httpClient = HttpUtils.createClient()) {
             HttpGet request = new HttpGet(url);
             if (docker) {
                 request = new HttpGet(url + "/v2/_catalog");
@@ -108,12 +96,11 @@ public class NexusRepositoryClient implements Serializable {
     }
 
     public NexusRepositoryDetails getRepositoryDetails(String name) {
-        try (CloseableHttpClient httpClient = buildHttpClient()) {
+        try (CloseableHttpClient httpClient = HttpUtils.createClient()) {
             HttpGet request = new HttpGet(url + "/service/rest/v1/repositories/" + name);
             if (Utils.isNotEmpty(authorization)) {
                 request.addHeader(HttpHeaders.AUTHORIZATION, authorization);
             }
-
             return httpClient.execute(request, new AbstractHttpClientResponseHandler<>() {
                 @Override
                 public NexusRepositoryDetails handleEntity(HttpEntity entity) throws IOException {
@@ -137,7 +124,7 @@ public class NexusRepositoryClient implements Serializable {
             return;
         }
         NexusRepositoryFormat format = NexusRepositoryFormat.valueOf(nxRepo.getFormat());
-        try (CloseableHttpClient httpClient = buildHttpClient()) {
+        try (CloseableHttpClient httpClient = HttpUtils.createClient()) {
             List<HttpEntity> multipartEntities = new LinkedList<>();
             if (NexusRepositoryFormat.raw.equals(format)) {
                 if (req.getFileAsserts().size() > MAX_ASSERTS) {
@@ -197,7 +184,7 @@ public class NexusRepositoryClient implements Serializable {
             throw new NexusClientException("Only support maven2, raw format");
         }
         NexusRepositoryFormat format = NexusRepositoryFormat.valueOf(nxRepo.getFormat());
-        try (CloseableHttpClient httpClient = buildHttpClient()) {
+        try (CloseableHttpClient httpClient = HttpUtils.createClient()) {
             URIBuilder uriBuilder = new URIBuilder(url + "/service/rest/v1/search")
                     .addParameter(REPOSITORY, nxRepo.getName())
                     .addParameter(DIRECTION, "desc");
@@ -242,7 +229,7 @@ public class NexusRepositoryClient implements Serializable {
             throw new NexusClientException("Only support maven2, raw format");
         }
         NexusRepositoryFormat format = NexusRepositoryFormat.valueOf(nxRepo.getFormat());
-        try (CloseableHttpClient httpClient = buildHttpClient()) {
+        try (CloseableHttpClient httpClient = HttpUtils.createClient()) {
             URIBuilder uriBuilder =
                     new URIBuilder(url + "/service/rest/v1/search/assets").addParameter("repository", nxRepo.getName());
             if (NexusRepositoryFormat.raw.equals(format)) {
@@ -274,7 +261,7 @@ public class NexusRepositoryClient implements Serializable {
     }
 
     public void download(List<NexusDownloadFileDTO> dowloadList) {
-        try (CloseableHttpClient httpClient = buildHttpClient()) {
+        try (CloseableHttpClient httpClient = HttpUtils.createClient()) {
             for (NexusDownloadFileDTO ndf : dowloadList) {
                 HttpGet httpGet = new HttpGet(ndf.getDownloadUrl());
                 if (Utils.isNotEmpty(authorization)) {
@@ -306,7 +293,7 @@ public class NexusRepositoryClient implements Serializable {
     }
 
     public void deleteComponents(Set<String> componentIds) {
-        try (CloseableHttpClient httpClient = buildHttpClient()) {
+        try (CloseableHttpClient httpClient = HttpUtils.createClient()) {
             for (String id : componentIds) {
                 HttpDelete httpDelete = new HttpDelete(url + "/service/rest/v1/components/" + id);
                 if (Utils.isNotEmpty(authorization)) {
@@ -321,7 +308,7 @@ public class NexusRepositoryClient implements Serializable {
 
     public SearchDockerTagsResp searchDockerTags(NexusSearchComponentsReq req) {
         String imageName = req.getGroupId() + "/" + req.getArtifactId();
-        try (CloseableHttpClient httpClient = buildHttpClient()) {
+        try (CloseableHttpClient httpClient = HttpUtils.createClient()) {
             HttpGet request = new HttpGet(String.format("%s/v2/%s/tags/list", url, imageName));
             if (Utils.isNotEmpty(authorization)) {
                 request.addHeader(HttpHeaders.AUTHORIZATION, authorization);
