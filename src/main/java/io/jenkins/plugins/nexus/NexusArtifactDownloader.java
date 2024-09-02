@@ -210,9 +210,10 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
             } else {
                 for (NexusAssertDetails ass : asserts) {
                     String fileName = Utils.getFileName(ass.getPath());
+                    File file = new File(f, fileName);
                     NexusDownloadFileDTO downFile = NexusDownloadFileDTO.builder()
                             .downloadUrl(ass.getDownloadUrl())
-                            .file(new File(f, fileName))
+                            .file(file)
                             .build();
                     logger.log(
                             "Downloading file. downloadFile: %s, filePath: %s",

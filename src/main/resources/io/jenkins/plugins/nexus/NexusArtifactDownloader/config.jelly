@@ -17,9 +17,9 @@
         <f:textbox/>
     </f:entry>
     <f:entry title="Location" field="location">
-        <f:textbox default="20"/>
+        <f:textbox/>
     </f:entry>
     <f:entry title="Max Assert Num" field="maxAssertNum">
-        <f:textbox/>
+        <f:textbox default="20"/>
     </f:entry>
 </j:jelly>

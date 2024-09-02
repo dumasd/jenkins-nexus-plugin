@@ -23,12 +23,12 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import lombok.Getter;
 import lombok.extern.java.Log;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -271,12 +271,9 @@ public class NexusRepositoryClient implements Serializable {
                     @Override
                     public Object handleEntity(HttpEntity entity) throws IOException {
                         File file = ndf.getFile();
-                        File parent = file.getParentFile();
-                        if (Objects.nonNull(parent) && !parent.exists() && !parent.mkdirs()) {
-                            throw new IOException("Mkdir error");
-                        }
-                        if (file.exists() && !file.delete()) {
-                            throw new IOException("Delete old file fail. file:" + file.getName());
+                        FileUtils.forceMkdirParent(file);
+                        if (file.exists()) {
+                            FileUtils.delete(file);
                         }
                         try (FileOutputStream fos = new FileOutputStream(file)) {
                             entity.writeTo(fos);
