@@ -162,7 +162,7 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
                 baseUrl = StringUtils.removeStart(baseUrl, "http://");
                 for (int i = resp.getTags().size() - 1; i >= 0; i--) {
                     String tag = resp.getTags().get(i);
-                    String image = String.format("%s/%s/%s", baseUrl, resp.getName(), tag);
+                    String image = String.format("%s/%s:%s", baseUrl, resp.getName(), tag);
                     items.add(image, image);
                 }
             } else {
