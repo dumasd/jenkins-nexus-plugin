@@ -98,7 +98,11 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
             return Collections.emptyList();
         }
         String[] choices = strippedChoices.split(CHOICES_DELIMITER);
-        return Arrays.stream(choices).distinct().collect(Collectors.toList());
+        return Arrays.stream(choices)
+                .map(StringUtils::trim)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     @Override
