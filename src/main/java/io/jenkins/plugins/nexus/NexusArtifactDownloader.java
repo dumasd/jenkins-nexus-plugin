@@ -15,6 +15,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
 import io.jenkins.plugins.nexus.config.NexusRepoServerGlobalConfig;
+import io.jenkins.plugins.nexus.model.dto.NexusArtifactDownloadResult;
 import io.jenkins.plugins.nexus.model.dto.NexusDownloadFileDTO;
 import io.jenkins.plugins.nexus.model.req.NexusSearchAssertsReq;
 import io.jenkins.plugins.nexus.model.resp.NexusAssertDetails;
@@ -133,18 +134,20 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
                 nxRepoCfg.getServerUrl(), repositoryEx, groupIdEx, artifactIdEx, versionEx, locationEx);
 
         String auth = nxRepoCfg.getAuthorization();
-        List<String> downloadFiles = target.act(new RemoteDownloader(
+        NexusArtifactDownloadResult result = target.act(new RemoteDownloader(
                 locationEx, auth, nxRepoCfg, repositoryEx, groupIdEx, artifactIdEx, versionEx, maxAssertNum));
-        if (downloadFiles == null || downloadFiles.isEmpty()) {
+
+        if (result.getDownloadFiles() == null || result.getDownloadFiles().isEmpty()) {
             logger.log("Not found file to download!!!");
         } else {
-            for (String df : downloadFiles) {
+            for (String df : result.getDownloadFiles()) {
                 logger.log("Download file: %s", df);
             }
         }
+        logger.log("Download spend time: %sms", String.valueOf(result.getSpendTime()));
     }
 
-    private static class RemoteDownloader extends MasterToSlaveFileCallable<List<String>> {
+    private static class RemoteDownloader extends MasterToSlaveFileCallable<NexusArtifactDownloadResult> {
         private final String location;
         private final String auth;
         private final NexusRepoServerConfig nxRepoCfg;
@@ -174,10 +177,11 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
         }
 
         @Override
-        public List<String> invoke(File f, VirtualChannel channel) throws IOException, InterruptedException {
+        public NexusArtifactDownloadResult invoke(File f, VirtualChannel channel)
+                throws IOException, InterruptedException {
+            long startTime = System.currentTimeMillis();
             NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg, auth);
             NexusRepositoryDetails nxRepo = client.getRepositoryDetails(repository);
-
             List<NexusDownloadFileDTO> downloadFiles = new LinkedList<>();
             if (Utils.isNotEmpty(location) && Utils.isFile(location)) {
 
@@ -225,8 +229,13 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
                     .collect(Collectors.toList());
 
             client.download(downloadFiles);
+            long endTime = System.currentTimeMillis();
 
-            return downLoadFilePaths;
+            NexusArtifactDownloadResult result = new NexusArtifactDownloadResult();
+            result.setDownloadFiles(downLoadFilePaths);
+            result.setSpendTime(endTime - startTime);
+
+            return result;
         }
     }
 
