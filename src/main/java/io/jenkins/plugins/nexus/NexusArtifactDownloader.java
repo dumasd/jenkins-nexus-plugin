@@ -32,6 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.tasks.SimpleBuildStep;
@@ -148,6 +149,9 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
     }
 
     private static class RemoteDownloader extends MasterToSlaveFileCallable<NexusArtifactDownloadResult> {
+        private static final java.util.logging.Logger LOGGER =
+                java.util.logging.Logger.getLogger(NexusArtifactDownloader.RemoteDownloader.class.getName());
+
         private final String location;
         private final String auth;
         private final NexusRepoServerConfig nxRepoCfg;
@@ -182,6 +186,12 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
             long startTime = System.currentTimeMillis();
             NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg, auth);
             NexusRepositoryDetails nxRepo = client.getRepositoryDetails(repository);
+            LOGGER.log(
+                    Level.INFO,
+                    "Get nexus repository details spend time: {0}",
+                    (System.currentTimeMillis() - startTime));
+            startTime = System.currentTimeMillis();
+
             List<NexusDownloadFileDTO> downloadFiles = new LinkedList<>();
             if (Utils.isNotEmpty(location) && Utils.isFile(location)) {
 
@@ -222,18 +232,23 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
                             .build();
                     downloadFiles.add(downFile);
                 }
+
+                LOGGER.log(Level.INFO, "Search asserts spend time: {0}", (System.currentTimeMillis() - startTime));
             }
+
+            startTime = System.currentTimeMillis();
 
             List<String> downLoadFilePaths = downloadFiles.stream()
                     .map(e -> e.getFile().getAbsolutePath())
                     .collect(Collectors.toList());
 
             client.download(downloadFiles);
-            long endTime = System.currentTimeMillis();
 
             NexusArtifactDownloadResult result = new NexusArtifactDownloadResult();
             result.setDownloadFiles(downLoadFilePaths);
-            result.setSpendTime(endTime - startTime);
+            result.setSpendTime(System.currentTimeMillis() - startTime);
+
+            LOGGER.log(Level.INFO, "Download asserts spend time: {0}", (System.currentTimeMillis() - startTime));
 
             return result;
         }
