@@ -49,6 +49,8 @@ import org.kohsuke.stapler.StaplerRequest;
 @Log
 public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition {
 
+    private static final long serialVersionUID = -6584524453125089068L;
+
     /**
      * Nexus Server ID
      */

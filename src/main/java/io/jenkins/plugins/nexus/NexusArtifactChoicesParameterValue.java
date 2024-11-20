@@ -13,6 +13,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 @Getter
 public class NexusArtifactChoicesParameterValue extends ParameterValue {
 
+    private static final long serialVersionUID = 9049224812498272342L;
+
     private final List<String> value;
 
     @DataBoundConstructor
