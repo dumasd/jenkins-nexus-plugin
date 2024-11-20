@@ -9,7 +9,7 @@ import static io.jenkins.plugins.nexus.utils.Constants.VERSION;
 
 import com.alibaba.fastjson2.JSON;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
-import io.jenkins.plugins.nexus.model.dto.NexusDownloadFileDTO;
+import io.jenkins.plugins.nexus.model.dto.NexusDownloadInfo;
 import io.jenkins.plugins.nexus.model.req.NexusSearchAssertsReq;
 import io.jenkins.plugins.nexus.model.req.NexusSearchComponentsReq;
 import io.jenkins.plugins.nexus.model.req.NexusUploadSingleComponentReq;
@@ -33,6 +33,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.entity.mime.FileBody;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.client5.http.impl.classic.AbstractHttpClientResponseHandler;
@@ -98,6 +99,8 @@ public class NexusRepositoryClient implements Serializable {
     public NexusRepositoryDetails getRepositoryDetails(String name) {
         try (CloseableHttpClient httpClient = HttpUtils.createClient()) {
             HttpGet request = new HttpGet(url + "/service/rest/v1/repositories/" + name);
+            request.setConfig(
+                    RequestConfig.custom().setContentCompressionEnabled(false).build());
             if (Utils.isNotEmpty(authorization)) {
                 request.addHeader(HttpHeaders.AUTHORIZATION, authorization);
             }
@@ -260,17 +263,17 @@ public class NexusRepositoryClient implements Serializable {
         }
     }
 
-    public void download(List<NexusDownloadFileDTO> dowloadList) {
+    public void downloadFiles(List<NexusDownloadInfo> dowloadList) {
         try (CloseableHttpClient httpClient = HttpUtils.createClient()) {
-            for (NexusDownloadFileDTO ndf : dowloadList) {
-                HttpGet httpGet = new HttpGet(ndf.getDownloadUrl());
+            for (NexusDownloadInfo ndi : dowloadList) {
+                HttpGet httpGet = new HttpGet(ndi.getDownloadUrl());
                 if (Utils.isNotEmpty(authorization)) {
                     httpGet.addHeader(HttpHeaders.AUTHORIZATION, authorization);
                 }
                 httpClient.execute(httpGet, new AbstractHttpClientResponseHandler<>() {
                     @Override
                     public Object handleEntity(HttpEntity entity) throws IOException {
-                        File file = ndf.getFile();
+                        File file = new File(ndi.getFilePath());
                         FileUtils.forceMkdirParent(file);
                         if (file.exists()) {
                             FileUtils.delete(file);

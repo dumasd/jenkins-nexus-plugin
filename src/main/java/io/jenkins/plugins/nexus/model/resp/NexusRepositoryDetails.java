@@ -14,7 +14,8 @@ import lombok.ToString;
 @Getter
 @ToString
 public class NexusRepositoryDetails implements Serializable {
-    private static final long serialVersionUID = 1L;
+
+    private static final long serialVersionUID = -2893597327740258229L;
 
     private String name;
     private String format;

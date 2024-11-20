@@ -16,7 +16,7 @@ import hudson.util.ListBoxModel;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
 import io.jenkins.plugins.nexus.config.NexusRepoServerGlobalConfig;
 import io.jenkins.plugins.nexus.model.dto.NexusArtifactDownloadResult;
-import io.jenkins.plugins.nexus.model.dto.NexusDownloadFileDTO;
+import io.jenkins.plugins.nexus.model.dto.NexusDownloadInfo;
 import io.jenkins.plugins.nexus.model.req.NexusSearchAssertsReq;
 import io.jenkins.plugins.nexus.model.resp.NexusAssertDetails;
 import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
@@ -27,17 +27,17 @@ import io.jenkins.plugins.nexus.utils.Utils;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import jenkins.MasterToSlaveFileCallable;
 import jenkins.tasks.SimpleBuildStep;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.java.Log;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -49,6 +49,7 @@ import org.kohsuke.stapler.verb.POST;
  * @author Bruce.Wu
  * @since 2024-07-20
  */
+@Log
 @Setter
 @Getter
 public class NexusArtifactDownloader extends Builder implements SimpleBuildStep, Serializable {
@@ -135,49 +136,73 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
                 nxRepoCfg.getServerUrl(), repositoryEx, groupIdEx, artifactIdEx, versionEx, locationEx);
 
         String auth = nxRepoCfg.getAuthorization();
-        NexusArtifactDownloadResult result = target.act(new RemoteDownloader(
-                locationEx, auth, nxRepoCfg, repositoryEx, groupIdEx, artifactIdEx, versionEx, maxAssertNum));
 
-        if (result.getDownloadFiles() == null || result.getDownloadFiles().isEmpty()) {
+        long startTime = System.currentTimeMillis();
+        NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg, auth);
+        NexusRepositoryDetails nxRepo = client.getRepositoryDetails(repositoryEx);
+        log.log(Level.INFO, "Get nexus repository details spend time: {0}", (System.currentTimeMillis() - startTime));
+        startTime = System.currentTimeMillis();
+
+        List<NexusDownloadInfo> downloadInfos = new ArrayList<>();
+        if (Utils.isNotEmpty(locationEx) && Utils.isFile(locationEx)) {
+            String downloadUrl = String.format(
+                    "%s%s%s/%s",
+                    nxRepo.getUrl(), Utils.toNexusDictionary(groupIdEx, artifactIdEx), versionEx, target.getName());
+            NexusDownloadInfo di = new NexusDownloadInfo(downloadUrl, target.getRemote());
+            downloadInfos.add(di);
+        } else {
+            String continuationToken = null;
+            Set<NexusAssertDetails> asserts = new LinkedHashSet<>();
+
+            while (asserts.size() < maxAssertNum) {
+                NexusSearchAssertsReq.NexusSearchAssertsReqBuilder reqBuilder = NexusSearchAssertsReq.builder()
+                        .groupId(groupIdEx)
+                        .artifactId(artifactIdEx)
+                        .version(versionEx)
+                        .continuationToken(continuationToken);
+                NexusSearchAssertsResp resp = client.searchAsserts(nxRepo, reqBuilder.build());
+                asserts.addAll(resp.getItems());
+
+                if (StringUtils.isBlank(resp.getContinuationToken())) {
+                    break;
+                }
+                continuationToken = resp.getContinuationToken();
+            }
+
+            for (NexusAssertDetails ass : asserts) {
+                String fileName = Utils.getFileName(ass.getPath());
+                FilePath dfp = target.child(fileName);
+                NexusDownloadInfo di = new NexusDownloadInfo(ass.getDownloadUrl(), dfp.getRemote());
+                downloadInfos.add(di);
+            }
+            log.log(Level.INFO, "Search asserts spend time: {0}ms", (System.currentTimeMillis() - startTime));
+        }
+
+        if (downloadInfos.isEmpty()) {
             logger.log("Not found file to download!!!");
         } else {
-            for (String df : result.getDownloadFiles()) {
-                logger.log("Download file: %s", df);
+            NexusArtifactDownloadResult result = target.act(new RemoteDownloader(auth, nxRepoCfg, downloadInfos));
+            for (NexusDownloadInfo df : downloadInfos) {
+                logger.log("Download file: %s", df.getFilePath());
             }
+            logger.log("Download spend time: %sms", String.valueOf(result.getSpendTime()));
+            log.log(Level.INFO, "Download spend time: {0}ms", result.getSpendTime());
         }
-        logger.log("Download spend time: %sms", String.valueOf(result.getSpendTime()));
     }
 
     private static class RemoteDownloader extends MasterToSlaveFileCallable<NexusArtifactDownloadResult> {
         private static final java.util.logging.Logger LOGGER =
                 java.util.logging.Logger.getLogger(NexusArtifactDownloader.RemoteDownloader.class.getName());
+        private static final long serialVersionUID = 6854543502604967968L;
 
-        private final String location;
         private final String auth;
         private final NexusRepoServerConfig nxRepoCfg;
-        private final String repository;
-        private final String groupId;
-        private final String artifactId;
-        private final String version;
-        private final Integer maxAssertNum;
+        private final List<NexusDownloadInfo> downloadInfos;
 
-        public RemoteDownloader(
-                String location,
-                String auth,
-                NexusRepoServerConfig nxRepoCfg,
-                String repository,
-                String groupId,
-                String artifactId,
-                String version,
-                int maxAssertNum) {
-            this.location = location;
+        public RemoteDownloader(String auth, NexusRepoServerConfig nxRepoCfg, List<NexusDownloadInfo> downloadInfos) {
             this.auth = auth;
             this.nxRepoCfg = nxRepoCfg;
-            this.repository = repository;
-            this.groupId = groupId;
-            this.artifactId = artifactId;
-            this.version = version;
-            this.maxAssertNum = maxAssertNum;
+            this.downloadInfos = downloadInfos;
         }
 
         @Override
@@ -185,71 +210,12 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
                 throws IOException, InterruptedException {
             long startTime = System.currentTimeMillis();
             NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg, auth);
-            NexusRepositoryDetails nxRepo = client.getRepositoryDetails(repository);
-            LOGGER.log(
-                    Level.INFO,
-                    "Get nexus repository details spend time: {0}",
-                    (System.currentTimeMillis() - startTime));
-            startTime = System.currentTimeMillis();
-
-            List<NexusDownloadFileDTO> downloadFiles = new LinkedList<>();
-            if (Utils.isNotEmpty(location) && Utils.isFile(location)) {
-
-                String downloadUrl = String.format(
-                        "%s%s%s/%s",
-                        nxRepo.getUrl(), Utils.toNexusDictionary(groupId, artifactId), version, f.getName());
-                NexusDownloadFileDTO downFile = NexusDownloadFileDTO.builder()
-                        .downloadUrl(downloadUrl)
-                        .file(f)
-                        .build();
-                downloadFiles.add(downFile);
-
-            } else {
-                String continuationToken = null;
-                Set<NexusAssertDetails> asserts = new LinkedHashSet<>();
-
-                while (asserts.size() < maxAssertNum) {
-                    NexusSearchAssertsReq.NexusSearchAssertsReqBuilder reqBuilder = NexusSearchAssertsReq.builder()
-                            .groupId(groupId)
-                            .artifactId(artifactId)
-                            .version(version)
-                            .continuationToken(continuationToken);
-                    NexusSearchAssertsResp resp = client.searchAsserts(nxRepo, reqBuilder.build());
-                    asserts.addAll(resp.getItems());
-
-                    if (StringUtils.isBlank(resp.getContinuationToken())) {
-                        break;
-                    }
-                    continuationToken = resp.getContinuationToken();
-                }
-
-                for (NexusAssertDetails ass : asserts) {
-                    String fileName = Utils.getFileName(ass.getPath());
-                    File file = new File(f, fileName);
-                    NexusDownloadFileDTO downFile = NexusDownloadFileDTO.builder()
-                            .downloadUrl(ass.getDownloadUrl())
-                            .file(file)
-                            .build();
-                    downloadFiles.add(downFile);
-                }
-
-                LOGGER.log(Level.INFO, "Search asserts spend time: {0}", (System.currentTimeMillis() - startTime));
-            }
-
-            startTime = System.currentTimeMillis();
-
-            List<String> downLoadFilePaths = downloadFiles.stream()
-                    .map(e -> e.getFile().getAbsolutePath())
-                    .collect(Collectors.toList());
-
-            client.download(downloadFiles);
+            client.downloadFiles(downloadInfos);
 
             NexusArtifactDownloadResult result = new NexusArtifactDownloadResult();
-            result.setDownloadFiles(downLoadFilePaths);
             result.setSpendTime(System.currentTimeMillis() - startTime);
 
             LOGGER.log(Level.INFO, "Download asserts spend time: {0}", (System.currentTimeMillis() - startTime));
-
             return result;
         }
     }
