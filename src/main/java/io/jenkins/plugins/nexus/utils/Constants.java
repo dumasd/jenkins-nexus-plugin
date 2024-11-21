@@ -10,4 +10,6 @@ public interface Constants {
     String NAME = "name";
     String DIRECTION = "direction";
     String REPOSITORY = "repository";
+
+    String COSIGN_SING_TAG_REGEX = "^sha.*\\.sig$";
 }

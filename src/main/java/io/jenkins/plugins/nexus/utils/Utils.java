@@ -1,6 +1,7 @@
 package io.jenkins.plugins.nexus.utils;
 
 import java.io.File;
+import java.util.regex.Pattern;
 
 public class Utils {
 
@@ -66,5 +67,12 @@ public class Utils {
             return "";
         }
         return idx < 0 ? path : path.substring(idx + 1);
+    }
+
+    public static boolean isMatch(Pattern pattern, String content) {
+        if (content == null) {
+            return false;
+        }
+        return pattern.matcher(content).matches();
     }
 }

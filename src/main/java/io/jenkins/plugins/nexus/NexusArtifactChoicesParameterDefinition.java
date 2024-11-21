@@ -15,6 +15,7 @@ import io.jenkins.plugins.nexus.model.resp.NexusComponentDetails;
 import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
 import io.jenkins.plugins.nexus.model.resp.NexusSearchComponentsResp;
 import io.jenkins.plugins.nexus.model.resp.SearchDockerTagsResp;
+import io.jenkins.plugins.nexus.utils.Constants;
 import io.jenkins.plugins.nexus.utils.NexusRepositoryClient;
 import io.jenkins.plugins.nexus.utils.NexusRepositoryFormat;
 import io.jenkins.plugins.nexus.utils.Utils;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
@@ -163,11 +165,16 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
             NexusSearchComponentsReq.NexusSearchComponentsReqBuilder reqBuilder =
                     NexusSearchComponentsReq.builder().groupId(groupId).artifactId(artifactId);
             if (client.isDocker()) {
+                Pattern cosignSignTagPattern = Pattern.compile(Constants.COSIGN_SING_TAG_REGEX);
                 SearchDockerTagsResp resp = client.searchDockerTags(reqBuilder.build());
                 String baseUrl = StringUtils.removeStart(client.getUrl(), "https://");
                 baseUrl = StringUtils.removeStart(baseUrl, "http://");
                 for (int i = resp.getTags().size() - 1; i >= 0; i--) {
                     String tag = resp.getTags().get(i);
+                    if (Utils.isMatch(cosignSignTagPattern, tag)) {
+                        // skip cosign sign tag
+                        continue;
+                    }
                     String image = String.format("%s/%s:%s", baseUrl, resp.getName(), tag);
                     items.add(image, image);
                 }
