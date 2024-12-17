@@ -17,6 +17,7 @@ import hudson.util.ListBoxModel;
 import io.jenkins.plugins.nexus.action.NexusArtifactPublisherAction;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
 import io.jenkins.plugins.nexus.config.NexusRepoServerGlobalConfig;
+import io.jenkins.plugins.nexus.model.dto.Artifact;
 import io.jenkins.plugins.nexus.model.req.NexusUploadSingleComponentReq;
 import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
 import io.jenkins.plugins.nexus.utils.Logger;
@@ -29,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import jenkins.tasks.SimpleBuildStep;
 import lombok.Getter;
 import lombok.Setter;
@@ -146,11 +148,22 @@ public class NexusArtifactPublisher extends Recorder implements SimpleBuildStep,
             action = new NexusArtifactPublisherAction();
             run.addAction(action);
         }
-        action.addArtifact(req.getGroup(), req.getArtifactId(), req.getVersion());
+
+        final String assertBaseUrl = String.format(
+                "%s%s%s",
+                nxRepo.getUrl(), Utils.toNexusDictionary(req.getGroup(), req.getArtifactId()), req.getVersion());
+        List<Artifact.Assert> asserts = fileAsserts.stream()
+                .map(e -> {
+                    String name = e.getFile().getName();
+                    return new Artifact.Assert(name, assertBaseUrl + "/" + name);
+                })
+                .collect(Collectors.toList());
+        action.addArtifact(req.getGroup(), req.getArtifactId(), req.getVersion(), asserts);
     }
 
     public static class UploadFileCallable implements Callable<Boolean, IOException> {
 
+        private static final long serialVersionUID = 6733596409470600654L;
         private final TaskListener listener;
         private final NexusRepositoryClient client;
         private final NexusRepositoryDetails repositoryDetails;

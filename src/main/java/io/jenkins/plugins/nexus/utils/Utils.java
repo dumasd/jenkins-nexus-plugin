@@ -5,6 +5,8 @@ import java.util.regex.Pattern;
 
 public class Utils {
 
+    private Utils() {}
+
     public static boolean isNullOrEmpty(final String name) {
         return name == null || name.matches("\\s*");
     }

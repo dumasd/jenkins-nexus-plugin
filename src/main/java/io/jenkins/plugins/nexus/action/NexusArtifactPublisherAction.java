@@ -3,6 +3,7 @@ package io.jenkins.plugins.nexus.action;
 import io.jenkins.plugins.nexus.model.dto.Artifact;
 import java.io.Serializable;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,8 +25,8 @@ public class NexusArtifactPublisherAction extends AbstractNexusArtifactAction im
         this.artifacts = new LinkedHashSet<>();
     }
 
-    public void addArtifact(String groupId, String artifactId, String version) {
-        artifacts.add(new Artifact(groupId, artifactId, version));
+    public void addArtifact(String groupId, String artifactId, String version, List<Artifact.Assert> asserts) {
+        artifacts.add(new Artifact(groupId, artifactId, version, asserts));
     }
 
     @Override

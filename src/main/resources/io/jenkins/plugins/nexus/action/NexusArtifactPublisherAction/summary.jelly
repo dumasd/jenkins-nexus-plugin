@@ -7,7 +7,18 @@
         <j:if test="${!empty(it.artifacts)}">
             <ul>
                 <j:forEach var="artifact" items="${it.artifacts}">
-                    <li>${artifact.groupId}:${artifact.artifactId}:${artifact.version}</li>
+                    <li>
+                        <span>${artifact.groupId}:${artifact.artifactId}:${artifact.version}</span>
+                        <j:if test="${!empty(artifact.asserts)}">
+                            <ul>
+                                <j:forEach var="assert" items="${artifact.asserts}">
+                                    <li>
+                                        <a href="${assert.link}">${assert.name}</a>
+                                    </li>
+                                </j:forEach>
+                            </ul>
+                        </j:if>
+                    </li>
                 </j:forEach>
             </ul>
         </j:if>
