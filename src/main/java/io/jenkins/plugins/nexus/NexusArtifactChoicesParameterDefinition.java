@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -41,6 +42,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.bind.JavaScriptMethod;
+import org.kohsuke.stapler.verb.POST;
 
 /**
  * @author Bruce.Wu
@@ -72,7 +75,7 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
     /**
      * 最大的版本号查找数量
      */
-    private int maxVersionCount = 50;
+    private int maxVersionCount = 100;
 
     @DataBoundConstructor
     public NexusArtifactChoicesParameterDefinition(@NonNull String name, String serverId, String repository) {
@@ -111,18 +114,18 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
 
     @Override
     public ParameterValue createValue(StaplerRequest req, JSONObject jo) {
-        log.log(Level.INFO, "Create value with jo. {0}", jo);
         JSONObject versionMap = jo.getJSONObject("value");
+        JSONArray gaIds = jo.getJSONArray("groupIdArtifactIds");
         List<String> value = new ArrayList<>(versionMap.size());
-        for (Object obj : versionMap.values()) {
-            value.add(obj.toString());
+        for (int i = 0; i < gaIds.size(); i++) {
+            String key = gaIds.getString(i).replace('.', '-').replace(':', '-');
+            value.add(versionMap.getString(key));
         }
         return new NexusArtifactChoicesParameterValue(getName(), value);
     }
 
     @Override
     public ParameterValue createValue(StaplerRequest req) {
-        log.log(Level.INFO, "Create value without jo.");
         try {
             JSONObject jo = req.getSubmittedForm();
             return createValue(req, jo);
@@ -149,11 +152,14 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
             return items;
         }
 
+        @POST
+        @JavaScriptMethod(name = "fillVersionOptionsItems")
         public ListBoxModel doFillVersionOptionsItems(
                 @QueryParameter("serverId") String serverId,
                 @QueryParameter("repository") String repository,
                 @QueryParameter("option") String option,
-                @QueryParameter("limits") int limits)
+                @QueryParameter("limits") int limits,
+                @QueryParameter("keyword") String keyword)
                 throws Exception {
             ListBoxModel items = new ListBoxModel();
             NexusRepoServerConfig nxRepoCfg =
@@ -203,6 +209,12 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
                 }
                 versionSet.forEach(e -> items.add(e, e));
             }
+
+            if (Utils.isNotEmpty(keyword)) {
+                // 筛选
+                items.removeIf(e -> Utils.isNotContains(e.value, keyword) || Utils.isNotContains(e.name, keyword));
+            }
+
             return items;
         }
 

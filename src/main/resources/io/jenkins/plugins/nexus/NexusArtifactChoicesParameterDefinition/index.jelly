@@ -3,6 +3,16 @@
          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form"
          xmlns:i="jelly:fmt" xmlns:p="/lib/hudson/project">
     <j:set var="escapeEntryTitleAndDescription" value="false"/>
+
+    <div style="display: none;">
+        <input id="nexusArtifactChoiceBaseUrl" type="hidden" disabled="disabled"
+               value="${rootURL}/descriptorByName/io.jenkins.plugins.nexus.NexusArtifactChoicesParameterDefinition"/>
+        <input id="nexusArtifactChoiceServerId" type="hidden" disabled="disabled" value="${it.serverId}"/>
+        <input id="nexusArtifactChoiceRepository" type="hidden" disabled="disabled" value="${it.repository}"/>
+        <input id="nexusArtifactChoiceMaxVersionCount" type="hidden" disabled="disabled"
+               value="${it.getMaxVersionCount()}"/>
+    </div>
+
     <div name="parameter">
         <f:entry title="${h.escape(it.name)}" description="${it.formattedDescription}">
             <input type="hidden" name="name" value="${h.escape(it.name)}"/>
@@ -18,7 +28,7 @@
         </div>
     </div>
 
-    <script type="text/javascript">
+    <!--<script type="text/javascript">
         <![CDATA[
         function updateVersionOptions(select) {
             var limits = '${it.getMaxVersionCount()}'
@@ -71,5 +81,7 @@
             })
         }
         ]]>
-    </script>
+    </script>-->
+
+    <script type="text/javascript" src="${rootURL}/plugin/jenkins-nexus-plugin/js/nexus-artifact-choices-parameter.js"/>
 </j:jelly>

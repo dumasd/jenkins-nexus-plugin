@@ -77,4 +77,11 @@ public class Utils {
         }
         return pattern.matcher(content).matches();
     }
+
+    public static boolean isNotContains(String text, String search) {
+        if (text == null || search == null) {
+            return true;
+        }
+        return !text.contains(search);
+    }
 }
