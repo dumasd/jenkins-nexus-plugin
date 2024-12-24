@@ -6,6 +6,7 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.remoting.Callable;
@@ -26,11 +27,15 @@ import io.jenkins.plugins.nexus.utils.Utils;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import jenkins.model.ArtifactManager;
 import jenkins.tasks.SimpleBuildStep;
 import lombok.Getter;
 import lombok.Setter;
@@ -145,20 +150,32 @@ public class NexusArtifactPublisher extends Recorder implements SimpleBuildStep,
         // 添加结果
         NexusArtifactPublisherAction action = run.getAction(NexusArtifactPublisherAction.class);
         if (Objects.isNull(action)) {
-            action = new NexusArtifactPublisherAction();
+            action = new NexusArtifactPublisherAction(serverId);
             run.addAction(action);
         }
 
-        final String assertBaseUrl = String.format(
-                "%s%s%s",
-                nxRepo.getUrl(), Utils.toNexusDictionary(req.getGroup(), req.getArtifactId()), req.getVersion());
-        List<Artifact.Assert> asserts = fileAsserts.stream()
-                .map(e -> {
-                    String name = e.getFile().getName();
-                    return new Artifact.Assert(name, assertBaseUrl + "/" + name);
-                })
+        final String baseDir = Utils.toNexusDictionary(req.getGroup(), req.getArtifactId()) + req.getVersion();
+        final String assertBaseUrl = nxRepo.getUrl() + baseDir;
+
+        List<Artifact.Assert> asserts = Arrays.stream(paths)
+                .map(e -> new Artifact.Assert(e.getName(), assertBaseUrl + "/" + e.getName()))
                 .collect(Collectors.toList());
         action.addArtifact(req.getGroup(), req.getArtifactId(), req.getVersion(), asserts);
+
+        if (listener instanceof BuildListener) {
+            ArtifactManager artifactManager = run.pickArtifactManager();
+            Map<String, String> artifacts = new LinkedHashMap<>();
+            String rootPath = workspace.getRemote();
+            for (FilePath path : paths) {
+                String filePath = path.getRemote();
+                if (filePath.startsWith(rootPath)) {
+                    String workspacePath = filePath.substring(rootPath.length() + 1);
+                    String artifactPath = nxRepo.getName() + baseDir + "/" + path.getName();
+                    artifacts.put(artifactPath, workspacePath);
+                }
+            }
+            artifactManager.archive(workspace, launcher, (BuildListener) listener, artifacts);
+        }
     }
 
     public static class UploadFileCallable implements Callable<Boolean, IOException> {

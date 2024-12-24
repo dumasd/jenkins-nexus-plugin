@@ -19,9 +19,12 @@ import lombok.ToString;
 public class NexusArtifactPublisherAction extends AbstractNexusArtifactAction implements Serializable {
     private static final long serialVersionUID = 1L;
 
+    private String serverId;
+
     private Set<Artifact> artifacts;
 
-    public NexusArtifactPublisherAction() {
+    public NexusArtifactPublisherAction(String serverId) {
+        this.serverId = serverId;
         this.artifacts = new LinkedHashSet<>();
     }
 
