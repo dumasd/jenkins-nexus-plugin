@@ -30,7 +30,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import jenkins.MasterToSlaveFileCallable;
@@ -85,7 +84,7 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
     /**
      * 可下载的最大Assert数量
      */
-    private Integer maxAssertNum;
+    private int maxAssertNum = 50;
 
     @DataBoundConstructor
     public NexusArtifactDownloader(
@@ -93,19 +92,22 @@ public class NexusArtifactDownloader extends Builder implements SimpleBuildStep,
             @NonNull String repository,
             @NonNull String groupId,
             @NonNull String artifactId,
-            @NonNull String version,
-            Integer maxAssertNum) {
+            @NonNull String version) {
         this.serverId = serverId;
         this.repository = repository;
         this.groupId = groupId;
         this.artifactId = artifactId;
         this.version = version;
-        this.maxAssertNum = Objects.requireNonNullElse(maxAssertNum, 50);
     }
 
     @DataBoundSetter
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    @DataBoundSetter
+    public void setMaxAssertNum(int maxAssertNum) {
+        this.maxAssertNum = maxAssertNum;
     }
 
     @Override

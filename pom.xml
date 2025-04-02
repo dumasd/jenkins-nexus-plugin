@@ -60,9 +60,8 @@
       <version>2.0.52</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.httpcomponents.client5</groupId>
-      <artifactId>httpclient5</artifactId>
-      <version>5.3.1</version>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>apache-httpcomponents-client-5-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
