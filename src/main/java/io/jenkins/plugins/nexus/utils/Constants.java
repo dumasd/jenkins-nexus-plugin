@@ -11,5 +11,7 @@ public interface Constants {
     String DIRECTION = "direction";
     String REPOSITORY = "repository";
 
-    String COSIGN_SING_TAG_REGEX = "^sha.*\\.sig$";
+    String IMAGE_TAG_SIG_REGEX = "^sha.*\\.sig$";
+
+    String RAW_FILE_SIG_REGEX = ".*\\.sig$";
 }

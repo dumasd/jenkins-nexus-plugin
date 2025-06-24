@@ -171,7 +171,7 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
             NexusSearchComponentsReq.NexusSearchComponentsReqBuilder reqBuilder =
                     NexusSearchComponentsReq.builder().groupId(groupId).artifactId(artifactId);
             if (client.isDocker()) {
-                Pattern cosignSignTagPattern = Pattern.compile(Constants.COSIGN_SING_TAG_REGEX);
+                Pattern cosignSignTagPattern = Pattern.compile(Constants.IMAGE_TAG_SIG_REGEX);
                 SearchDockerTagsResp resp = client.searchDockerTags(reqBuilder.build());
                 String baseUrl = StringUtils.removeStart(client.getUrl(), "https://");
                 baseUrl = StringUtils.removeStart(baseUrl, "http://");
@@ -185,6 +185,7 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
                     items.add(image, image);
                 }
             } else {
+                Pattern cosignSignTagPattern = Pattern.compile(Constants.RAW_FILE_SIG_REGEX);
                 NexusRepositoryDetails nxRepo = client.getRepositoryDetails(repository);
                 int loopNum = 0;
                 String continuationToken = null;
@@ -196,6 +197,9 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
                         break;
                     }
                     for (NexusComponentDetails c : resp.getItems()) {
+                        if (Utils.isMatch(cosignSignTagPattern, c.getName())) {
+                            continue;
+                        }
                         String version = c.version(groupId, artifactId);
                         if (Objects.nonNull(version)) {
                             versionSet.add(option + ":" + version);

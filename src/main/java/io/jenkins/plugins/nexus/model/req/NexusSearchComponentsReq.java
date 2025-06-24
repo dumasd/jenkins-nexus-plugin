@@ -18,4 +18,6 @@ public class NexusSearchComponentsReq implements Serializable {
     private String artifactId;
 
     private String continuationToken;
+
+    private boolean onlyArtifactId;
 }
