@@ -1,59 +1,60 @@
 # Jenkins Nexus Plugin
 
-## 介绍
+## Introduction
 
-使用 Nexus3 仓库服务做制品管理。此插件仅支持 Nexus-3.x 版本。
+Use the Nexus 3 repository service for artifact management. This plugin only supports Nexus 3.x versions.
 
-## 特性
+## Features
 
-- nexusArtifactPublish: 将构建后的制品上传到 Nexus 仓库服务。
-- nexusArtifactDownload: 从 Nexus 仓库服务下载制品。 
-- nexusArtifactDelete: 从 Nexus 仓库服务删除制品。
-- nexusArtifactChoices: Nexus 仓库制品参数列表。
+- nexusArtifactPublish: Upload the built artifacts to the Nexus repository service.
+- nexusArtifactDownload: Download artifacts from the Nexus repository service. 
+- nexusArtifactDelete: Delete artifacts from the Nexus repository service.
+- nexusArtifactChoices: List of Nexus repository artifact parameters.
 
-## 使用
+## Usage
 
-### 全局配置
+### Global Configuration
 
-| 参数            | 参数名称         | 参数解释           |
-|---------------|--------------|----------------|
-| serverId      | Server ID    | Nexus 服务ID     |
-| serverUrl     | Server URL   | Nexus 服务地址     |
-| credentialsId | Credentials  | Nexus 服务访问凭据ID |
-| displayName   | Display Name | 展示名称           |
-| docker        | Docker       | 是否是Docker仓库地址  |
+| Parameter     | Parameter name | Parameter description             |
+|---------------|----------------|-----------------------------------|
+| serverId      | Server ID      | Nexus Server ID                   |
+| serverUrl     | Server URL     | Nexus ServerURL                   |
+| credentialsId | Credentials    | Nexus Access Credentials ID       |
+| displayName   | Display Name   | Display Name                      |
+| docker        | Docker         | Weather is this a Docker registry |
 
-在Jenkins系统管理 -> Nexus，配置 Nexus 服务访问凭证和地址。
+In Jenkins, go to Manage Jenkins → Nexus and configure the Nexus service credentials and endpoint.
+
 
 ![img.png](images/img.png)
 
 ### nexusArtifactPublish
 
-| 参数       | 参数名称 | 参数解释                   | 必填 |
-| ---------- |--|------------------------|----|
-| serverId      | Server ID | 全局配置中的Nexus ID         | Y  |
-| repository      | Repository | 仓库名称                   | Y  |
-| groupId      | GroupId | Group ID               | Y  |
-| artifactId      | ArtifactId |  Artifact ID           | Y  |
-| version      | Version |  Version               | Y  |
-| generatePom      | Generate Pom | 是否生成pom文件（maven2仓库可用）  | N  |
-| packing      | Packing | 全局配置中的Nexus ID（maven2仓库可用） | N  |
-| includes   | Include Files | 包含文件，`dist/**`   `target/**.jar` | Y  |
-| excludes   | Excludes Files | 排除文件，`*.svg,*.png`     | N |
+| Parameter      | Parameter name | Parameter description                            | Required |
+| ------- |--|--------------------------------------------------|----------|
+| serverId   | Server ID | The ID defined in the global configuration       | Y        |
+| repository   | Repository | Repository                                       | Y        |
+| groupId   | GroupId | Group ID                                         | Y        |
+| artifactId   | ArtifactId | Artifact ID                                      | Y        |
+| version   | Version | Version                                          | Y        |
+| generatePom   | Generate Pom | Weather generate maven pom file (Only used in maven2 repo) | N        |
+| packing   | Packing | Maven packing format (only used in maven2 repo）  | N        |
+| includes | Include Files | Include files，`dist/**`   `target/**.jar`        | Y        |
+| excludes | Excludes Files | Execlude files，`*.svg,*.png`                     | N        |
 
-> Tip：目前仅支持往 Nexus`raw`和`maven2（release）`格式，`hosted`类型的仓库上传制品。
+> Tip：Supports publishing artifacts to Nexus repositories in raw and maven2 formats.
 
-#### Freestyle 作业
+#### Freestyle job
 
-在 Add post-build action（增加构建后操作步骤）选择 Nexus Artifact Publisher。
+In Add post-build action, select Nexus Artifact Publisher.
 
 ![img1.png](images/img1.png)
 
-配置参数。
+Provide configuration details:
 
 ![img.png](images/img2.png)
 
-#### Pipeline 作业
+#### Pipeline job
 
 ``` groovy
 pipeline {
@@ -83,28 +84,28 @@ pipeline {
 
 ### nexusArtifactDownload
 
-| 参数         | 参数名称     | 参数解释                   | 必填 |
-|------------|----------|------------------------|----|
-| serverId   | Server ID | 全局配置中的Nexus ID         | Y  |
-| repository | Repository | 仓库名称                   | Y  |
-| groupId    | GroupId  | Group ID               | Y  |
-| artifactId | ArtifactId |  Artifact ID           | Y  |
-| version    | Version  |  Version               | Y  |
-| location   | Location | 本地的下载位置，不填默认在workspace根目录，如果是文件夹必须以'/'结尾 | N |
+| Parameter         | Parameter name     | Parameter description         | Required |
+|------------|----------|------------------------|----------|
+| serverId   | Server ID | The ID defined in the global configuration | Y        |
+| repository | Repository | Repository                   | Y        |
+| groupId    | GroupId  | Group ID               | Y        |
+| artifactId | ArtifactId |  Artifact ID           | Y        |
+| version    | Version  |  Version               | Y        |
+| location   | Location | Local download path. If left empty, the default is the root of the workspace. If it is a directory, it must end with a ‘/’. | N        |
 
-> Tip：支持从 Nexus`raw`和`maven2`格式的仓库下载制品。
+> Tip：Supports downloading artifacts from Nexus repositories in raw and maven2 formats.
 
-#### Freestyle 作业
+#### Freestyle job
 
-在 Add build step（增加构建步骤）选择 Nexus Artifact Downloader。
+In Add build step, select Nexus Artifact Downloader.
 
 ![img.png](images/img4-1.png)
 
-填写配置。
+Provide configuration details:
 
 ![img.png](images/img4-2.png)
 
-#### Pipeline 作业
+#### Pipeline job
 
 ```groovy
 pipeline {
@@ -128,27 +129,27 @@ pipeline {
 
 ### nexusArtifactDelete
 
-| 参数         | 参数名称     | 参数解释                   | 必填 |
-|------------|----------|------------------------|----|
-| serverId   | Server ID | 全局配置中的Nexus ID         | Y  |
-| repository | Repository | 仓库名称                   | Y  |
-| groupId    | GroupId  | Group ID               | Y  |
-| artifactId | ArtifactId |  Artifact ID           | Y  |
-| version    | Version  |  Version               | Y  |
+| Parameter         | Parameter name      | Parameter description | Required |
+|------------|----------|-----------------------|----|
+| serverId   | Server ID | The ID defined in the global configuration                      | Y  |
+| repository | Repository | Repository                  | Y  |
+| groupId    | GroupId  | Group ID              | Y  |
+| artifactId | ArtifactId | Artifact ID           | Y  |
+| version    | Version  | Version               | Y  |
 
-> Tip：支持删除 Nexus`raw`和`maven2`格式仓库下的制品。
+> Tip：Supports deleting artifacts from Nexus repositories in raw and maven2 formats.
 
-#### Freestyle 作业
+#### Freestyle job
 
-在 Add build step（增加构建步骤）选择 Nexus Artifact Deleter。
+In Add build step, select Nexus Artifact Deleter。
 
 ![img.png](images/img5-1.png)
 
-填写配置。
+Provide configuration details:
 
 ![img.png](images/img5-2.png)
 
-#### Pipeline 作业
+#### Pipeline job
 
 ```groovy
 pipeline {
@@ -170,27 +171,27 @@ pipeline {
 
 ### nexusArtifactChoices
 
-| 参数         | 参数名称                                      | 参数解释 | 必填 |
-|------------|-------------------------------------------|----|----|
-| name       | Name (名称)                                 | 参数名称 | Y  |
-| serverId   | Server ID (服务ID)                          | 全局配置中的Nexus ID | Y  |
-| repository | Repository (仓库)                           | 仓库名称 | Y  |
-| groupIdArtifactIds    | GroupId:ArtifactId (GroupId:ArtifactId列表) |   制品的GroupId和ArtifactId列表。格式为：[GroupId:ArtifactId]。 多个选项使用换行分隔。 | Y  |
-| artifactId | ArtifactId                                | Artifact ID | Y  |
-| visibleItemCount    | Visible Item Count(列表数量)                | GroupId:ArtifactId列表展示数量 | Y  |
-| maxVersionCount    | Max Version Count(最大版本数量)                 | 从Nexus仓库查找的最大版本数量 | Y  |
+| Parameter         | Parameter name                                                                | Parameter description                                                                                                                                     | Required |
+|----------|-------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|----|
+| name     | Name                                                                          | The param name                                                                                                                                            | Y  |
+| serverId | Server ID                                                                     | The ID defined in the global configuration                                                                                                                | Y  |
+| repository | Repository                                                                    | Repository                                                                                                                                                | Y  |
+| groupIdArtifactIds  | GroupId:ArtifactId:[:VersionFilter] (GroupId:ArtifactId[:VersionFilter] List) | Artifact list format: GroupId:ArtifactId[:VersionFilter]. The VersionFilter supports wildcard matching. Multiple entries should be separated by new lines. | Y  |
+| visibleItemCount  | Visible Item Count                                                            | Number of items display in the GroupId:ArtifactId[:VersionFilter] list                                                                                    | Y  |
+| maxVersionCount  | Max Version Count                                                             | Max number of version                                                                                                                                | Y  |
 
-> Tip：支持选择 Nexus`raw`、`maven2`和`docker`格式仓库下的制品。
+> Tip：Supports choosing artifacts from Nexus repositories in raw and maven2 formats.
 
-勾选`参数化构建过程（This project is parameterized）`，选择 `Nexus Artifact Choices Parameter`：
+Check `This project is parameterized`, then select `Nexus Artifact Choices Parameter`:
+
 
 ![img.png](images/img10-1.png)
 
-填写配置：
+Provide configuration details:
 
 ![img.png](images/img10-2.png)
 
-运行流水线后，会将指定的groupId-artifactId下版本拉下来，通过列表展示，选择制品制品的版本，选择后的结果会放到`name`参数指定的环境变量名称里面
+After running the pipeline, it will download the versions under the specified groupId-artifactId, display them in a list, and allow you to select the artifact version. The selected version will be stored in the environment variable named by the name parameter.
 
 ![img.png](images/img10-3.png)
 ![img.png](images/img10-4.png)

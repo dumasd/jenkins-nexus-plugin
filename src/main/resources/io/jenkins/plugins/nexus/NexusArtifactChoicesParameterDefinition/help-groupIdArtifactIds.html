@@ -1,13 +1,13 @@
 <div>
     List of GroupId and ArtifactId of artifacts.
-    The format is: <code>[GroupId:ArtifactId]</code>.
+    The format is: <code>GroupId:ArtifactId[:VersionFilter]</code>, VersionFilter is optional and ant-styled.
     Multiple options are separated by newlines.
     <p>
         Example: <br>
         <code>
             com.example:example-account<br>
-            com.example:example-order<br>
-            com.example:example-goods<br>
+            com.example:example-order:*<br>
+            com.example:example-goods:sit-*<br>
         </code>
     </p>
 </div>

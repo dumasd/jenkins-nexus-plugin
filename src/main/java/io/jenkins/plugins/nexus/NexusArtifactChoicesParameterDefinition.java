@@ -4,6 +4,7 @@ import static hudson.model.ChoiceParameterDefinition.CHOICES_DELIMITER;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.Util;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.util.FormValidation;
@@ -21,14 +22,13 @@ import io.jenkins.plugins.nexus.utils.NexusRepositoryFormat;
 import io.jenkins.plugins.nexus.utils.Utils;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
@@ -37,6 +37,7 @@ import net.sf.json.JSONObject;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.tools.ant.types.selectors.SelectorUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -99,17 +100,22 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
         this.maxVersionCount = maxVersionCount;
     }
 
-    public List<String> getGroupIdArtifactIdList() {
+    public ListBoxModel getGroupIdArtifactIdList() {
         String strippedChoices = StringUtils.trim(groupIdArtifactIds);
+        ListBoxModel result = new ListBoxModel();
         if (StringUtils.isBlank(strippedChoices)) {
-            return Collections.emptyList();
+            return result;
         }
         String[] choices = strippedChoices.split(CHOICES_DELIMITER);
-        return Arrays.stream(choices)
-                .map(StringUtils::trim)
-                .filter(StringUtils::isNotBlank)
+        Arrays.stream(choices)
+                .map(Util::fixEmptyAndTrim)
+                .filter(Objects::nonNull)
                 .distinct()
-                .collect(Collectors.toList());
+                .forEach(e -> {
+                    String[] ss = e.split(":");
+                    result.add(ss[0] + ":" + ss[1], e);
+                });
+        return result;
     }
 
     @Override
@@ -168,6 +174,8 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
             String[] ss = option.split(":");
             final String groupId = ss[0];
             final String artifactId = ss[1];
+            final String filter = ss.length > 2 ? Util.fixEmptyAndTrim(ss[2]) : null;
+            Function<String, Boolean> filterFunc = s -> filter == null || SelectorUtils.match(filter, s);
             NexusSearchComponentsReq.NexusSearchComponentsReqBuilder reqBuilder =
                     NexusSearchComponentsReq.builder().groupId(groupId).artifactId(artifactId);
             if (client.isDocker()) {
@@ -177,12 +185,10 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
                 baseUrl = StringUtils.removeStart(baseUrl, "http://");
                 for (int i = resp.getTags().size() - 1; i >= 0; i--) {
                     String tag = resp.getTags().get(i);
-                    if (Utils.isMatch(cosignSignTagPattern, tag)) {
-                        // skip cosign sign tag
-                        continue;
+                    if ((!Utils.isMatch(cosignSignTagPattern, tag)) && filterFunc.apply(tag)) {
+                        String image = String.format("%s/%s:%s", baseUrl, resp.getName(), tag);
+                        items.add(image, image);
                     }
-                    String image = String.format("%s/%s:%s", baseUrl, resp.getName(), tag);
-                    items.add(image, image);
                 }
             } else {
                 Pattern cosignSignTagPattern = Pattern.compile(Constants.RAW_FILE_SIG_REGEX);
@@ -201,8 +207,8 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
                             continue;
                         }
                         String version = c.version(groupId, artifactId);
-                        if (Objects.nonNull(version)) {
-                            versionSet.add(option + ":" + version);
+                        if (Objects.nonNull(version) && filterFunc.apply(version)) {
+                            versionSet.add(String.format("%s:%s:%s", groupId, artifactId, version));
                         }
                     }
                     if (StringUtils.isBlank(resp.getContinuationToken())) {
@@ -298,7 +304,7 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
         }
         for (String choice : choices) {
             String[] pair = choice.split(":");
-            if (pair.length != 2) {
+            if (pair.length < 2 || pair.length > 3) {
                 return false;
             }
         }

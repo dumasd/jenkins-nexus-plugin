@@ -18,8 +18,8 @@
             <input type="hidden" name="name" value="${h.escape(it.name)}"/>
             <select name="groupIdArtifactIds" multiple="multiple" size="${it.visibleItemCount}"
                     onchange="updateVersionOptions(this)">
-                <j:forEach var="value" items="${it.getGroupIdArtifactIdList()}">
-                    <f:option value="${value}">${value}</f:option>
+                <j:forEach var="ga" items="${it.getGroupIdArtifactIdList()}">
+                    <f:option value="${ga.value}">${ga.name}</f:option>
                 </j:forEach>
             </select>
         </f:entry>
