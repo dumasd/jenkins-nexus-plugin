@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -124,9 +125,22 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
 
     @Override
     public ParameterValue createValue(StaplerRequest req) {
+        String value = req.getParameter(getName());
+        if (value != null) {
+            return new NexusArtifactChoicesParameterValue(getName(), value);
+        }
+
         try {
             JSONObject jo = req.getSubmittedForm();
-            return createValue(req, jo);
+            JSONArray parameters = jo.getJSONArray("parameter");
+            for (int i = 0; i < parameters.size(); i++) {
+                JSONObject parameter = parameters.getJSONObject(i);
+                String name = parameter.getString("name");
+                if (getName().equals(name)) {
+                    return createValue(req, parameter);
+                }
+            }
+            return new NexusArtifactChoicesParameterValue(getName(), "");
         } catch (Exception e) {
             throw new RuntimeException("Create value error.", e);
         }
