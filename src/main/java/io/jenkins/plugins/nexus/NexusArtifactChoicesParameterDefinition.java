@@ -117,17 +117,9 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
 
     @Override
     public ParameterValue createValue(StaplerRequest req, JSONObject jo) {
-        /*
-            JSONObject versionMap = jo.getJSONObject("value");
-        JSONArray gaIds = jo.getJSONArray("groupIdArtifactIds");
-        List<String> value = new ArrayList<>(versionMap.size());
-        for (int i = 0; i < gaIds.size(); i++) {
-            String key = gaIds.getString(i).replace('.', '-').replace(':', '-');
-            value.add(versionMap.getString(key));
-        }
-        */
         String value = jo.getString("value");
-        return new NexusArtifactChoicesParameterValue(getName(), value);
+        String name = jo.getString("name");
+        return new NexusArtifactChoicesParameterValue(name, value);
     }
 
     @Override
