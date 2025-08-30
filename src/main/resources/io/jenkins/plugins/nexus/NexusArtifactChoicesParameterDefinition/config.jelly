@@ -1,7 +1,5 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
-         xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form"
-         xmlns:i="jelly:fmt" xmlns:p="/lib/hudson/project">
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
     <f:entry title="${%Name}" field="name" help="/help/parameter/name.html">
         <f:textbox name="parameter.name" value="${instance.name}"/>
     </f:entry>
@@ -15,10 +13,10 @@
         <f:textarea name="parameter.groupIdArtifactIds" value="${instance.groupIdArtifactIds}"/>
     </f:entry>
     <f:entry title="${%VisibleItemCount}" field="visibleItemCount">
-        <f:textbox name="parameter.visibleItemCount"/>
+        <f:textbox name="parameter.visibleItemCount" default="20"/>
     </f:entry>
     <f:entry title="${%MaxVersionCount}" field="maxVersionCount">
-        <f:textbox name="parameter.maxVersionCount"/>
+        <f:textbox name="parameter.maxVersionCount" default="150"/>
     </f:entry>
     <f:validateButton
             title="${%Validate}" progress="Validating..."

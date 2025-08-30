@@ -22,66 +22,13 @@
                     <f:option value="${ga.value}">${ga.name}</f:option>
                 </j:forEach>
             </select>
+            <input id="nexusArtifactChoicesValue" type="hidden" name="value"/>
         </f:entry>
-        <div id="versionsContainer" name="value">
-
-        </div>
     </div>
 
-    <!--<script type="text/javascript">
-        <![CDATA[
-        function updateVersionOptions(select) {
-            var limits = '${it.getMaxVersionCount()}'
-            var serverId = '${it.serverId}'
-            var repository = '${it.repository}'
-            var selectedOptions = Array.from(select.selectedOptions).map(e => e.value)
-            var container = document.getElementById('versionsContainer')
-            container.innerHTML = ''
-            select.disabled = true
-            var promises = []
-            var url = '${rootURL}/descriptorByName/io.jenkins.plugins.nexus.NexusArtifactChoicesParameterDefinition/fillVersionOptionsItems'
-            for (var i = 0; i < selectedOptions.length; i++) {
-                const option = selectedOptions.at(i)
-                const selectName = "option_" + i
-                promises.push(new Promise((resolve, reject) => {
-                    var xhr = new XMLHttpRequest()
-                    xhr.open('GET', url +
-                            '?limits=' + limits +
-                            '&serverId=' + serverId +
-                            '&repository=' + repository +
-                            '&option=' + option)
-                    xhr.onload = function () {
-                        if (xhr.status === 200) {
-                            var subOptions = JSON.parse(xhr.responseText)
-                            if (subOptions.values.length > 0) {
-                                var selectElement = document.createElement('select')
-                                var br = document.createElement('br')
-                                subOptions.values.forEach(subOption => {
-                                    var optionElement = document.createElement('option')
-                                    optionElement.value = subOption.value
-                                    optionElement.textContent = subOption.name
-                                    selectElement.appendChild(optionElement)
-                                });
-                                selectElement.name = selectName
-                                selectElement.style.marginBottom = '5px'
-                                selectElement.style.padding = '1px'
-                                container.appendChild(selectElement)
-                                container.appendChild(br)
-                            }
-                            resolve("OK")
-                        } else {
-                            reject("Fail")
-                        }
-                    }
-                    xhr.send();
-                }))
-            }
-            Promise.all(promises).finally(() => {
-                select.disabled = false
-            })
-        }
-        ]]>
-    </script>-->
+    <div id="nexusArtifactChoiceVersionsContainer">
+
+    </div>
 
     <script type="text/javascript" src="${rootURL}/plugin/jenkins-nexus-plugin/js/nexus-artifact-choices-parameter.js"/>
 </j:jelly>

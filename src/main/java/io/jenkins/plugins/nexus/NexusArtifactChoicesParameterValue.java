@@ -4,7 +4,6 @@ import hudson.EnvVars;
 import hudson.Util;
 import hudson.model.ParameterValue;
 import hudson.model.Run;
-import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -15,17 +14,16 @@ public class NexusArtifactChoicesParameterValue extends ParameterValue {
 
     private static final long serialVersionUID = 9049224812498272342L;
 
-    private final List<String> value;
+    private final String value;
 
     @DataBoundConstructor
-    public NexusArtifactChoicesParameterValue(String name, List<String> value) {
+    public NexusArtifactChoicesParameterValue(String name, String value) {
         super(name);
         this.value = Util.fixNull(value);
     }
 
     @Override
     public void buildEnvironment(Run<?, ?> build, EnvVars env) {
-        String v = String.join(",", value);
-        env.put(getName(), v);
+        env.put(getName(), value);
     }
 }

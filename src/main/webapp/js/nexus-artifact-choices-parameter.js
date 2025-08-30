@@ -43,7 +43,10 @@ function filterVersionOptions(e) {
                     selectElement.appendChild(optionElement)
                 });
             })
-            .finally(() => selectElement.disabled = false);
+            .finally(() => {
+                selectElement.disabled = false;
+                updateNexusArtifactChoicesValue();
+            });
         e.preventDefault();
     }
 }
@@ -53,9 +56,10 @@ function updateVersionOptions(select) {
     let serverId = document.getElementById("nexusArtifactChoiceServerId").value;
     let repository = document.getElementById("nexusArtifactChoiceRepository").value;
     let limits = document.getElementById("nexusArtifactChoiceMaxVersionCount").value;
+    let container = document.getElementById('nexusArtifactChoiceVersionsContainer')
 
     let selectedOptions = Array.from(select.selectedOptions).map(e => e.value)
-    let container = document.getElementById('versionsContainer')
+
     container.innerHTML = ''
     select.disabled = true
     let promises = []
@@ -91,6 +95,8 @@ function updateVersionOptions(select) {
                     selectElement.style.marginBottom = '7px'
                     selectElement.style.padding = '1px'
                     selectElement.setAttribute("group-artifact-id", option)
+                    selectElement.setAttribute("nexus-artifact-choice-version-select", "true")
+                    selectElement.addEventListener("change", updateNexusArtifactChoicesValue)
 
                     let searchInput = document.createElement('input')
                     searchInput.type = 'text'
@@ -108,5 +114,21 @@ function updateVersionOptions(select) {
 
     Promise.all(promises).finally(() => {
         select.disabled = false
+        updateNexusArtifactChoicesValue()
     })
+}
+
+
+function updateNexusArtifactChoicesValue() {
+    let nexusArtifactChoicesValue = document.getElementById("nexusArtifactChoicesValue");
+    nexusArtifactChoicesValue.value = "";
+    let selects = document.querySelectorAll("select[nexus-artifact-choice-version-select='true']");
+    for (let i = 0; i < selects.length; i++) {
+        let select = selects.item(i);
+        let option = select.options[select.selectedIndex];
+        if (nexusArtifactChoicesValue.value.length > 0) {
+            nexusArtifactChoicesValue.value += ","
+        }
+        nexusArtifactChoicesValue.value += option.value;
+    }
 }

@@ -20,10 +20,8 @@ import io.jenkins.plugins.nexus.utils.Constants;
 import io.jenkins.plugins.nexus.utils.NexusRepositoryClient;
 import io.jenkins.plugins.nexus.utils.NexusRepositoryFormat;
 import io.jenkins.plugins.nexus.utils.Utils;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -32,7 +30,6 @@ import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
-import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -120,13 +117,16 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
 
     @Override
     public ParameterValue createValue(StaplerRequest req, JSONObject jo) {
-        JSONObject versionMap = jo.getJSONObject("value");
+        /*
+            JSONObject versionMap = jo.getJSONObject("value");
         JSONArray gaIds = jo.getJSONArray("groupIdArtifactIds");
         List<String> value = new ArrayList<>(versionMap.size());
         for (int i = 0; i < gaIds.size(); i++) {
             String key = gaIds.getString(i).replace('.', '-').replace(':', '-');
             value.add(versionMap.getString(key));
         }
+        */
+        String value = jo.getString("value");
         return new NexusArtifactChoicesParameterValue(getName(), value);
     }
 
