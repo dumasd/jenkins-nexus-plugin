@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
@@ -125,22 +126,43 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
 
     @Override
     public ParameterValue createValue(StaplerRequest req) {
-        String value = req.getParameter(getName());
+
+        String parameterName = getName();
+
+        String value = req.getParameter(parameterName);
         if (value != null) {
-            return new NexusArtifactChoicesParameterValue(getName(), value);
+            return new NexusArtifactChoicesParameterValue(parameterName, value);
+        }
+
+        String[] parameterValues = req.getParameterValues(parameterName);
+        if (parameterValues != null && parameterValues.length > 0) {
+            value = String.join(",", parameterValues);
+            return new NexusArtifactChoicesParameterValue(parameterName, value);
         }
 
         try {
             JSONObject jo = req.getSubmittedForm();
+
+            Object obj = jo.getOrDefault(parameterName, null);
+            if (obj instanceof CharSequence) {
+                return new NexusArtifactChoicesParameterValue(parameterName, obj.toString());
+            } else if (obj instanceof JSONArray) {
+                JSONArray values = (JSONArray) obj;
+                value = values.stream().map(Object::toString).collect(Collectors.joining(","));
+                if (StringUtils.isNotBlank(value)) {
+                    return new NexusArtifactChoicesParameterValue(parameterName, value);
+                }
+            }
+
             JSONArray parameters = jo.getJSONArray("parameter");
             for (int i = 0; i < parameters.size(); i++) {
                 JSONObject parameter = parameters.getJSONObject(i);
                 String name = parameter.getString("name");
-                if (getName().equals(name)) {
+                if (parameterName.equals(name)) {
                     return createValue(req, parameter);
                 }
             }
-            return new NexusArtifactChoicesParameterValue(getName(), "");
+            return new NexusArtifactChoicesParameterValue(parameterName, "");
         } catch (Exception e) {
             throw new RuntimeException("Create value error.", e);
         }
