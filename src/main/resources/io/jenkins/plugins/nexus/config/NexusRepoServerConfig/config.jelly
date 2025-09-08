@@ -10,15 +10,29 @@
         <f:entry title="Server ID" field="serverId">
             <f:textbox/>
         </f:entry>
+
+        <f:entry title="Docker">
+            <f:checkbox field="docker" default="false"/>
+        </f:entry>
+        <f:advanced>
+            <f:entry title="Region" field="region">
+                <f:textbox/>
+            </f:entry>
+        </f:advanced>
+
+        <f:entry title="Registry" field="registry">
+            <f:select default="NEXUS">
+            </f:select>
+        </f:entry>
+
         <f:entry title="Server URL" field="serverUrl">
             <f:textbox/>
         </f:entry>
         <f:entry title="Credentials" field="credentialsId">
             <c:select/>
         </f:entry>
-        <f:entry title="Docker" field="docker">
-            <f:checkbox default="false"/>
-        </f:entry>
+
+
         <f:validateButton
                 title="Validate" progress="Validating..."
                 method="test" with="displayName,serverId,serverUrl,credentialsId,docker"/>

@@ -14,4 +14,8 @@ public interface Constants {
     String IMAGE_TAG_SIG_REGEX = "^sha.*\\.sig$";
 
     String RAW_FILE_SIG_REGEX = ".*\\.sig$";
+
+    String ECR = "ECR";
+    String NEXUS = "NEXUS";
+
 }

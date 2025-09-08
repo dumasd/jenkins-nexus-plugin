@@ -9,18 +9,17 @@ import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
+import io.jenkins.plugins.nexus.utils.HttpUtils;
+import io.jenkins.plugins.nexus.utils.Registry;
 import io.jenkins.plugins.nexus.utils.NexusRepositoryClient;
 import io.jenkins.plugins.nexus.utils.Utils;
+
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Objects;
+
 import jenkins.model.Jenkins;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -42,6 +41,8 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
     private String serverUrl;
     private String credentialsId;
     private boolean docker;
+    private String registry = Registry.NEXUS.name();
+    private String region;
 
     @DataBoundConstructor
     public NexusRepoServerConfig(String displayName, String serverId, String serverUrl) {
@@ -60,6 +61,17 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
         this.credentialsId = credentialsId;
     }
 
+    @DataBoundSetter
+    public void setRegistry(String registry) {
+        Registry.valueOf(registry);
+        this.registry = registry;
+    }
+
+    @DataBoundSetter
+    public void setRegion(String region) {
+        this.region = region;
+    }
+
     public String getAuthorization() {
         return credentialsIdToAuthorization(credentialsId);
     }
@@ -70,8 +82,7 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
             return null;
         }
         Secret pass = ((StandardUsernamePasswordCredentials) credentials).getPassword();
-        String usrPwd = credentials.getUsername() + ":" + Secret.toString(pass);
-        return "Basic " + Base64.getEncoder().encodeToString(usrPwd.getBytes(StandardCharsets.UTF_8));
+        return HttpUtils.getBasicAuth(credentials.getUsername(), Secret.toString(pass));
     }
 
     public static StandardUsernameCredentials findCredential(String credentialsId) {
@@ -99,7 +110,8 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
                 @QueryParameter("serverId") String serverId,
                 @QueryParameter("serverUrl") String serverUrl,
                 @QueryParameter("credentialsId") String credentialsId,
-                @QueryParameter("docker") boolean docker)
+                @QueryParameter("docker") boolean docker,
+                @QueryParameter("registry") String registry)
                 throws Exception {
             if (Utils.isNullOrEmpty(displayName)) {
                 return FormValidation.error("Please input Display Name");
@@ -113,10 +125,43 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
             if (!(serverUrl.startsWith("http://") || serverUrl.startsWith("https://"))) {
                 return FormValidation.error("Invalid Server URL pattern");
             }
-            String auth = credentialsIdToAuthorization(credentialsId);
-            NexusRepositoryClient client = new NexusRepositoryClient(serverUrl, auth, docker);
-            client.check();
+
+            if (docker) {
+                Registry registryEnum = Registry.NEXUS;
+                if (!Utils.isNullOrEmpty(registry)) {
+                    try {
+                        registryEnum = Registry.valueOf(registry);
+                    } catch (IllegalArgumentException e) {
+                        return FormValidation.error("Invalid docker registry", e);
+                    }
+                }
+                if (Registry.NEXUS.equals(registryEnum)) {
+                    String auth = credentialsIdToAuthorization(credentialsId);
+                    NexusRepositoryClient client = new NexusRepositoryClient(serverUrl, auth, true);
+                    client.check();
+                } else if (Registry.ECR.equals(registryEnum)) {
+                    // TODO ECR
+
+                }
+            } else {
+                String auth = credentialsIdToAuthorization(credentialsId);
+                NexusRepositoryClient client = new NexusRepositoryClient(serverUrl, auth, false);
+                client.check();
+            }
+
             return FormValidation.ok("Validate success");
+        }
+
+        public FormValidation doCheckRegistry(@QueryParameter String value) {
+            if (Utils.isNullOrEmpty(value)) {
+                return FormValidation.ok();
+            }
+            try {
+                Registry.valueOf(value);
+            } catch (IllegalArgumentException e) {
+                return FormValidation.error("Invalid docker registry", e);
+            }
+            return FormValidation.ok();
         }
 
         public ListBoxModel doFillCredentialsIdItems() {
@@ -125,6 +170,14 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
             for (StandardUsernameCredentials c : CredentialsProvider.lookupCredentialsInItemGroup(
                     StandardUsernameCredentials.class, Jenkins.get(), null, Collections.emptyList())) {
                 items.add(c.getId(), c.getId());
+            }
+            return items;
+        }
+
+        public ListBoxModel doFillRegistryItems() {
+            ListBoxModel items = new ListBoxModel();
+            for (Registry registry : Registry.values()) {
+                items.add(registry.name(), registry.name());
             }
             return items;
         }

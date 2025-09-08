@@ -1,7 +1,10 @@
 package io.jenkins.plugins.nexus.utils;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import javax.net.ssl.SSLContext;
+
 import org.apache.hc.client5.http.impl.DefaultRedirectStrategy;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
@@ -41,5 +44,10 @@ public final class HttpUtils {
                 .setConnectionManager(connMgt)
                 .setRedirectStrategy(DefaultRedirectStrategy.INSTANCE)
                 .build();
+    }
+
+    public static String getBasicAuth(String username, String password) {
+        String usrPwd = username + ":" + password;
+        return "Basic " + Base64.getEncoder().encodeToString(usrPwd.getBytes(StandardCharsets.UTF_8));
     }
 }

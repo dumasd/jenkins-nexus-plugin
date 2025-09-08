@@ -9,34 +9,25 @@ import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import io.jenkins.plugins.nexus.choice.ArtifactChoiceHandler;
+import io.jenkins.plugins.nexus.choice.ArtifactChoiceHandlers;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
 import io.jenkins.plugins.nexus.config.NexusRepoServerGlobalConfig;
-import io.jenkins.plugins.nexus.model.req.NexusSearchComponentsReq;
-import io.jenkins.plugins.nexus.model.resp.NexusComponentDetails;
 import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
-import io.jenkins.plugins.nexus.model.resp.NexusSearchComponentsResp;
-import io.jenkins.plugins.nexus.model.resp.SearchDockerTagsResp;
-import io.jenkins.plugins.nexus.utils.Constants;
-import io.jenkins.plugins.nexus.utils.NexusRepositoryClient;
-import io.jenkins.plugins.nexus.utils.NexusRepositoryFormat;
-import io.jenkins.plugins.nexus.utils.Utils;
+import io.jenkins.plugins.nexus.utils.*;
+
 import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.Objects;
-import java.util.Set;
-import java.util.function.Function;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.tools.ant.types.selectors.SelectorUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -195,57 +186,18 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
                 @QueryParameter("limits") int limits,
                 @QueryParameter("keyword") String keyword)
                 throws Exception {
-            ListBoxModel items = new ListBoxModel();
+            ListBoxModel items;
             NexusRepoServerConfig nxRepoCfg =
                     NexusRepoServerGlobalConfig.getConfig(serverId).orElseThrow();
-            NexusRepositoryClient client = new NexusRepositoryClient(nxRepoCfg);
-            String[] ss = option.split(":");
-            final String groupId = ss[0];
-            final String artifactId = ss[1];
-            final String filter = ss.length > 2 ? Util.fixEmptyAndTrim(ss[2]) : null;
-            Function<String, Boolean> filterFunc = s -> filter == null || SelectorUtils.match(filter, s);
-            NexusSearchComponentsReq.NexusSearchComponentsReqBuilder reqBuilder =
-                    NexusSearchComponentsReq.builder().groupId(groupId).artifactId(artifactId);
-            if (client.isDocker()) {
-                Pattern cosignSignTagPattern = Pattern.compile(Constants.IMAGE_TAG_SIG_REGEX);
-                SearchDockerTagsResp resp = client.searchDockerTags(reqBuilder.build());
-                String baseUrl = StringUtils.removeStart(client.getUrl(), "https://");
-                baseUrl = StringUtils.removeStart(baseUrl, "http://");
-                for (int i = resp.getTags().size() - 1; i >= 0; i--) {
-                    String tag = resp.getTags().get(i);
-                    if ((!Utils.isMatch(cosignSignTagPattern, tag)) && filterFunc.apply(tag)) {
-                        String image = String.format("%s/%s:%s", baseUrl, resp.getName(), tag);
-                        items.add(image, image);
-                    }
-                }
+
+            if (nxRepoCfg.isDocker()) {
+                Registry registry = Utils.isNullOrEmpty(nxRepoCfg.getRegistry()) ? Registry.NEXUS
+                        : Registry.valueOf(nxRepoCfg.getRegistry());
+                ArtifactChoiceHandler artifactChoiceHandler = ArtifactChoiceHandlers.getDockerHandler(registry);
+                items = artifactChoiceHandler.getItems(nxRepoCfg, option, repository, limits);
             } else {
-                Pattern cosignSignTagPattern = Pattern.compile(Constants.RAW_FILE_SIG_REGEX);
-                NexusRepositoryDetails nxRepo = client.getRepositoryDetails(repository);
-                int loopNum = 0;
-                String continuationToken = null;
-                Set<String> versionSet = new LinkedHashSet<>();
-                while (loopNum < 50 && versionSet.size() < limits) {
-                    reqBuilder.continuationToken(continuationToken);
-                    NexusSearchComponentsResp resp = client.searchComponents(nxRepo, reqBuilder.build());
-                    if (CollectionUtils.isEmpty(resp.getItems())) {
-                        break;
-                    }
-                    for (NexusComponentDetails c : resp.getItems()) {
-                        if (Utils.isMatch(cosignSignTagPattern, c.getName())) {
-                            continue;
-                        }
-                        String version = c.version(groupId, artifactId);
-                        if (Objects.nonNull(version) && filterFunc.apply(version)) {
-                            versionSet.add(String.format("%s:%s:%s", groupId, artifactId, version));
-                        }
-                    }
-                    if (StringUtils.isBlank(resp.getContinuationToken())) {
-                        break;
-                    }
-                    continuationToken = resp.getContinuationToken();
-                    loopNum++;
-                }
-                versionSet.forEach(e -> items.add(e, e));
+                ArtifactChoiceHandler artifactChoiceHandler = ArtifactChoiceHandlers.getHandler();
+                items = artifactChoiceHandler.getItems(nxRepoCfg, option, repository, limits);
             }
 
             if (Utils.isNotEmpty(keyword)) {
