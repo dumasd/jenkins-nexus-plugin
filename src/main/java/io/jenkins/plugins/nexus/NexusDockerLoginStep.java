@@ -18,6 +18,7 @@ import java.util.Set;
 import lombok.Getter;
 import lombok.extern.java.Log;
 import org.jenkinsci.plugins.workflow.steps.*;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 @Log
 @Getter
@@ -25,6 +26,7 @@ public class NexusDockerLoginStep extends Step {
 
     private final String serverId;
 
+    @DataBoundConstructor
     public NexusDockerLoginStep(String serverId) {
         this.serverId = serverId;
     }
