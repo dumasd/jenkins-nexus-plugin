@@ -11,12 +11,10 @@ import io.jenkins.plugins.nexus.config.NexusRepoServerGlobalConfig;
 import io.jenkins.plugins.nexus.handler.ArtifactHandler;
 import io.jenkins.plugins.nexus.handler.ArtifactHandlers;
 import io.jenkins.plugins.nexus.model.dto.GetLoginPasswordResult;
-
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-
 import lombok.Getter;
 import lombok.extern.java.Log;
 import org.jenkinsci.plugins.workflow.steps.*;
