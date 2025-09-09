@@ -11,15 +11,14 @@ import io.jenkins.plugins.nexus.model.resp.SearchDockerTagsResp;
 import io.jenkins.plugins.nexus.utils.Constants;
 import io.jenkins.plugins.nexus.utils.NexusRepositoryClient;
 import io.jenkins.plugins.nexus.utils.Utils;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.tools.ant.types.selectors.SelectorUtils;
-
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.tools.ant.types.selectors.SelectorUtils;
 
 public class NexusArtifactChoiceHandler implements ArtifactChoiceHandler {
     @Override
@@ -54,7 +53,7 @@ public class NexusArtifactChoiceHandler implements ArtifactChoiceHandler {
             int loopNum = 0;
             String continuationToken = null;
             Set<String> versionSet = new LinkedHashSet<>();
-            while (loopNum < 50 && versionSet.size() < limits) {
+            while (loopNum < 20 && versionSet.size() < limits) {
                 reqBuilder.continuationToken(continuationToken);
                 NexusSearchComponentsResp resp = client.searchComponents(nxRepo, reqBuilder.build());
                 if (CollectionUtils.isEmpty(resp.getItems())) {
@@ -80,5 +79,4 @@ public class NexusArtifactChoiceHandler implements ArtifactChoiceHandler {
 
         return items;
     }
-
 }

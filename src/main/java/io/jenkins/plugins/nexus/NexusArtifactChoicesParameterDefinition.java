@@ -15,12 +15,10 @@ import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
 import io.jenkins.plugins.nexus.config.NexusRepoServerGlobalConfig;
 import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
 import io.jenkins.plugins.nexus.utils.*;
-
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
@@ -191,7 +189,8 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
                     NexusRepoServerGlobalConfig.getConfig(serverId).orElseThrow();
 
             if (nxRepoCfg.isDocker()) {
-                Registry registry = Utils.isNullOrEmpty(nxRepoCfg.getRegistry()) ? Registry.NEXUS
+                Registry registry = Utils.isNullOrEmpty(nxRepoCfg.getRegistry())
+                        ? Registry.NEXUS
                         : Registry.valueOf(nxRepoCfg.getRegistry());
                 ArtifactChoiceHandler artifactChoiceHandler = ArtifactChoiceHandlers.getDockerHandler(registry);
                 items = artifactChoiceHandler.getItems(nxRepoCfg, option, repository, limits);

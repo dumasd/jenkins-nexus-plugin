@@ -10,17 +10,19 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import hudson.Util;
 import hudson.util.ListBoxModel;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
+import io.jenkins.plugins.nexus.utils.Constants;
+import io.jenkins.plugins.nexus.utils.Utils;
+import java.util.*;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.types.selectors.SelectorUtils;
 
-import java.util.*;
-import java.util.function.Function;
-
 public class ECRArtifactChoiceHandler implements ArtifactChoiceHandler {
     @Override
     public ListBoxModel getItems(NexusRepoServerConfig serverConfig, String option, String repository, int limits) {
-        AmazonECR ecr = getEcr(serverConfig);
+        AmazonECR ecr = createECR(serverConfig);
 
         ListBoxModel items = new ListBoxModel();
 
@@ -45,17 +47,19 @@ public class ECRArtifactChoiceHandler implements ArtifactChoiceHandler {
         String baseUri = ecrRepository.getRepositoryUri();
 
         // 2.列出tag列表
+        Pattern cosignSignTagPattern = Pattern.compile(Constants.IMAGE_TAG_SIG_REGEX);
         String continuationToken = null;
         Set<String> versionSet = new LinkedHashSet<>();
         int loopNum = 0;
-        while (versionSet.size() < limits && loopNum < 10) {
+        while (loopNum < 10 && versionSet.size() < limits) {
             ListImagesRequest listImagesRequest = new ListImagesRequest();
             listImagesRequest.setRepositoryName(repositoryName);
             listImagesRequest.setMaxResults(500);
             listImagesRequest.setNextToken(continuationToken);
             ListImagesResult listImagesResult = ecr.listImages(listImagesRequest);
             for (ImageIdentifier imageIdentifier : listImagesResult.getImageIds()) {
-                if (filterFunc.apply(imageIdentifier.getImageTag())) {
+                if ((!Utils.isMatch(cosignSignTagPattern, imageIdentifier.getImageTag()))
+                        && filterFunc.apply(imageIdentifier.getImageTag())) {
                     versionSet.add(baseUri + ":" + imageIdentifier.getImageTag());
                 }
             }
@@ -70,17 +74,28 @@ public class ECRArtifactChoiceHandler implements ArtifactChoiceHandler {
         return items;
     }
 
-    private AmazonECR getEcr(NexusRepoServerConfig serverConfig) {
-        List<StandardUsernamePasswordCredentials> usernamePasswordCredentialsList = CredentialsProvider.lookupCredentialsInItemGroup(StandardUsernamePasswordCredentials.class, Jenkins.get(), null, Collections.emptyList());
-        Optional<StandardUsernamePasswordCredentials> usernamePasswordCredentials = usernamePasswordCredentialsList.stream().filter(e -> Objects.equals(e.getId(), serverConfig.getCredentialsId())).findFirst();
+    private AmazonECR createECR(NexusRepoServerConfig serverConfig) {
+        List<StandardUsernamePasswordCredentials> usernamePasswordCredentialsList =
+                CredentialsProvider.lookupCredentialsInItemGroup(
+                        StandardUsernamePasswordCredentials.class, Jenkins.get(), null, Collections.emptyList());
+        Optional<StandardUsernamePasswordCredentials> usernamePasswordCredentials =
+                usernamePasswordCredentialsList.stream()
+                        .filter(e -> Objects.equals(e.getId(), serverConfig.getCredentialsId()))
+                        .findFirst();
         AWSCredentialsProvider awsCredentialsProvider = null;
         if (usernamePasswordCredentials.isPresent()) {
             StandardUsernamePasswordCredentials credentials = usernamePasswordCredentials.get();
-            AWSCredentials awsCredentials = new BasicAWSCredentials(credentials.getUsername(), credentials.getPassword().getPlainText());
+            AWSCredentials awsCredentials = new BasicAWSCredentials(
+                    credentials.getUsername(), credentials.getPassword().getPlainText());
             awsCredentialsProvider = new AWSStaticCredentialsProvider(awsCredentials);
         } else {
-            List<AmazonWebServicesCredentials> amazonWebServicesCredentialsList = CredentialsProvider.lookupCredentialsInItemGroup(AmazonWebServicesCredentials.class, Jenkins.get(), null, Collections.emptyList());
-            Optional<AmazonWebServicesCredentials> amazonWebServicesCredentials = amazonWebServicesCredentialsList.stream().filter(e -> Objects.equals(e.getId(), serverConfig.getCredentialsId())).findFirst();
+            List<AmazonWebServicesCredentials> amazonWebServicesCredentialsList =
+                    CredentialsProvider.lookupCredentialsInItemGroup(
+                            AmazonWebServicesCredentials.class, Jenkins.get(), null, Collections.emptyList());
+            Optional<AmazonWebServicesCredentials> amazonWebServicesCredentials =
+                    amazonWebServicesCredentialsList.stream()
+                            .filter(e -> Objects.equals(e.getId(), serverConfig.getCredentialsId()))
+                            .findFirst();
             if (amazonWebServicesCredentials.isPresent()) {
                 AmazonWebServicesCredentials credentials = amazonWebServicesCredentials.get();
                 AWSCredentials awsCredentials = credentials.getCredentials();
@@ -92,8 +107,8 @@ public class ECRArtifactChoiceHandler implements ArtifactChoiceHandler {
             amazonECRClientBuilder.withCredentials(awsCredentialsProvider);
         }
 
-        amazonECRClientBuilder.withEndpointConfiguration(new AmazonECRClientBuilder.EndpointConfiguration(serverConfig.getServerUrl(), serverConfig.getRegion()));
+        amazonECRClientBuilder.withEndpointConfiguration(new AmazonECRClientBuilder.EndpointConfiguration(
+                serverConfig.getServerUrl(), serverConfig.getRegion()));
         return amazonECRClientBuilder.build();
     }
-
 }

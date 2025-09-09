@@ -17,7 +17,6 @@ import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
 import io.jenkins.plugins.nexus.model.resp.NexusSearchAssertsResp;
 import io.jenkins.plugins.nexus.model.resp.NexusSearchComponentsResp;
 import io.jenkins.plugins.nexus.model.resp.SearchDockerTagsResp;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,7 +25,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-
 import lombok.Getter;
 import lombok.extern.java.Log;
 import org.apache.commons.collections.CollectionUtils;
@@ -209,8 +207,8 @@ public class NexusRepositoryClient implements Serializable {
                 uriBuilder.addParameter("continuationToken", req.getContinuationToken());
             }
 
-            log.log(Level.INFO, "Query raw components. repository={0}, uri={1}", new Object[]{
-                    nxRepo.getName(), uriBuilder.toString()
+            log.log(Level.INFO, "Query raw components. repository={0}, uri={1}", new Object[] {
+                nxRepo.getName(), uriBuilder.toString()
             });
             HttpGet httpGet = new HttpGet(uriBuilder.toString());
             if (Utils.isNotEmpty(authorization)) {

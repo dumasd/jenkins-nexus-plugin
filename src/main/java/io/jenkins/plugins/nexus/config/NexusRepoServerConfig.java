@@ -1,5 +1,6 @@
 package io.jenkins.plugins.nexus.config;
 
+import com.cloudbees.jenkins.plugins.awscredentials.AmazonWebServicesCredentials;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
@@ -10,14 +11,12 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import io.jenkins.plugins.nexus.utils.HttpUtils;
-import io.jenkins.plugins.nexus.utils.Registry;
 import io.jenkins.plugins.nexus.utils.NexusRepositoryClient;
+import io.jenkins.plugins.nexus.utils.Registry;
 import io.jenkins.plugins.nexus.utils.Utils;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Objects;
-
 import jenkins.model.Jenkins;
 import lombok.*;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -111,7 +110,8 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
                 @QueryParameter("serverUrl") String serverUrl,
                 @QueryParameter("credentialsId") String credentialsId,
                 @QueryParameter("docker") boolean docker,
-                @QueryParameter("registry") String registry)
+                @QueryParameter("registry") String registry,
+                @QueryParameter("region") String region)
                 throws Exception {
             if (Utils.isNullOrEmpty(displayName)) {
                 return FormValidation.error("Please input Display Name");
@@ -140,8 +140,9 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
                     NexusRepositoryClient client = new NexusRepositoryClient(serverUrl, auth, true);
                     client.check();
                 } else if (Registry.ECR.equals(registryEnum)) {
-                    // TODO ECR
-
+                    if (Utils.isNullOrEmpty(region)) {
+                        return FormValidation.error("Please input region when registry is ECR");
+                    }
                 }
             } else {
                 String auth = credentialsIdToAuthorization(credentialsId);
@@ -164,12 +165,25 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
             return FormValidation.ok();
         }
 
-        public ListBoxModel doFillCredentialsIdItems() {
+        public ListBoxModel doFillCredentialsIdItems(@QueryParameter("registry") String registry) {
+            Registry registryEnum = Registry.NEXUS;
+            if (!Utils.isNullOrEmpty(registry)) {
+                registryEnum = Registry.valueOf(registry);
+            }
+
             ListBoxModel items = new ListBoxModel();
             items.add("Select a credential", "");
+
             for (StandardUsernameCredentials c : CredentialsProvider.lookupCredentialsInItemGroup(
                     StandardUsernameCredentials.class, Jenkins.get(), null, Collections.emptyList())) {
                 items.add(c.getId(), c.getId());
+            }
+
+            if (Registry.ECR.equals(registryEnum)) {
+                for (AmazonWebServicesCredentials c : CredentialsProvider.lookupCredentialsInItemGroup(
+                        AmazonWebServicesCredentials.class, Jenkins.get(), null, Collections.emptyList())) {
+                    items.add(c.getDisplayName(), c.getId());
+                }
             }
             return items;
         }

@@ -17,5 +17,4 @@ public interface Constants {
 
     String ECR = "ECR";
     String NEXUS = "NEXUS";
-
 }
