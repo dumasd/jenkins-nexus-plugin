@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Objects;
 import jenkins.model.Jenkins;
 import lombok.*;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -69,6 +70,19 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
     @DataBoundSetter
     public void setRegion(String region) {
         this.region = region;
+    }
+
+    public Registry getRegistryEnum() {
+        if (StringUtils.isBlank(registry)) {
+            return Registry.NEXUS;
+        }
+        return Registry.valueOf(registry);
+    }
+
+    public String getDockerRepositoryUri() {
+        String repositoryUri = StringUtils.removeStart(serverUrl, "https://");
+        repositoryUri = StringUtils.removeStart(repositoryUri, "http://");
+        return repositoryUri;
     }
 
     public String getAuthorization() {

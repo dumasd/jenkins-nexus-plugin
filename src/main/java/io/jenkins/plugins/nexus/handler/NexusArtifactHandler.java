@@ -1,8 +1,12 @@
-package io.jenkins.plugins.nexus.choice;
+package io.jenkins.plugins.nexus.handler;
 
+import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import hudson.Util;
 import hudson.util.ListBoxModel;
+import hudson.util.Secret;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
+import io.jenkins.plugins.nexus.model.dto.GetLoginPasswordResult;
 import io.jenkins.plugins.nexus.model.req.NexusSearchComponentsReq;
 import io.jenkins.plugins.nexus.model.resp.NexusComponentDetails;
 import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
@@ -20,7 +24,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.types.selectors.SelectorUtils;
 
-public class NexusArtifactChoiceHandler implements ArtifactChoiceHandler {
+public class NexusArtifactHandler implements ArtifactHandler {
     @Override
     public ListBoxModel getItems(NexusRepoServerConfig serverConfig, String option, String repository, int limits) {
         ListBoxModel items = new ListBoxModel();
@@ -78,5 +82,20 @@ public class NexusArtifactChoiceHandler implements ArtifactChoiceHandler {
         }
 
         return items;
+    }
+
+    @Override
+    public GetLoginPasswordResult getLoginPassword(NexusRepoServerConfig serverConfig) {
+        StandardUsernameCredentials credentials = NexusRepoServerConfig.findCredential(serverConfig.getCredentialsId());
+        GetLoginPasswordResult result = new GetLoginPasswordResult();
+        if (credentials == null) {
+            return result;
+        }
+
+        Secret passwordSecret = ((StandardUsernamePasswordCredentials) credentials).getPassword();
+        result.setUsername(credentials.getUsername());
+        result.setPassword(Secret.toString(passwordSecret));
+        result.setRepositoryUri(serverConfig.getDockerRepositoryUri());
+        return result;
     }
 }

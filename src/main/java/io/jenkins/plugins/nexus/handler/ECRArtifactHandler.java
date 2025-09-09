@@ -1,4 +1,4 @@
-package io.jenkins.plugins.nexus.choice;
+package io.jenkins.plugins.nexus.handler;
 
 import com.amazonaws.auth.*;
 import com.amazonaws.services.ecr.AmazonECR;
@@ -10,16 +10,23 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import hudson.Util;
 import hudson.util.ListBoxModel;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
+import io.jenkins.plugins.nexus.model.dto.CreateImageRepositoryResult;
+import io.jenkins.plugins.nexus.model.dto.GetLoginPasswordResult;
 import io.jenkins.plugins.nexus.utils.Constants;
 import io.jenkins.plugins.nexus.utils.Utils;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Function;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
+import lombok.extern.java.Log;
 import org.apache.commons.lang.StringUtils;
 import org.apache.tools.ant.types.selectors.SelectorUtils;
 
-public class ECRArtifactChoiceHandler implements ArtifactChoiceHandler {
+@Log
+public class ECRArtifactHandler implements ArtifactHandler {
+
     @Override
     public ListBoxModel getItems(NexusRepoServerConfig serverConfig, String option, String repository, int limits) {
         AmazonECR ecr = createECR(serverConfig);
@@ -40,11 +47,19 @@ public class ECRArtifactChoiceHandler implements ArtifactChoiceHandler {
         }
 
         // 1. 获取仓库信息
-        DescribeRepositoriesRequest describeRepositoriesRequest = new DescribeRepositoriesRequest();
-        describeRepositoriesRequest.setRepositoryNames(Collections.singletonList(repositoryName));
-        DescribeRepositoriesResult describeRepositoriesResult = ecr.describeRepositories(describeRepositoriesRequest);
-        Repository ecrRepository = describeRepositoriesResult.getRepositories().get(0);
-        String baseUri = ecrRepository.getRepositoryUri();
+        String baseUri;
+        try {
+            DescribeRepositoriesRequest describeRepositoriesRequest = new DescribeRepositoriesRequest();
+            describeRepositoriesRequest.setRepositoryNames(Collections.singletonList(repositoryName));
+            DescribeRepositoriesResult describeRepositoriesResult =
+                    ecr.describeRepositories(describeRepositoriesRequest);
+            Repository ecrRepository =
+                    describeRepositoriesResult.getRepositories().get(0);
+            baseUri = ecrRepository.getRepositoryUri();
+        } catch (RepositoryNotFoundException e) {
+            log.log(Level.WARNING, "Repository {0} not found", repositoryName);
+            return items;
+        }
 
         // 2.列出tag列表
         Pattern cosignSignTagPattern = Pattern.compile(Constants.IMAGE_TAG_SIG_REGEX);
@@ -72,6 +87,54 @@ public class ECRArtifactChoiceHandler implements ArtifactChoiceHandler {
         }
         versionSet.forEach(e -> items.add(e, e));
         return items;
+    }
+
+    @Override
+    public GetLoginPasswordResult getLoginPassword(NexusRepoServerConfig serverConfig) {
+        AmazonECR ecr = createECR(serverConfig);
+        GetAuthorizationTokenRequest request = new GetAuthorizationTokenRequest();
+        GetAuthorizationTokenResult token = ecr.getAuthorizationToken(request);
+        if (token.getAuthorizationData().size() != 1) {
+            throw new RuntimeException("Did not get authorizationData from AWS");
+        }
+        AuthorizationData authorizationData = token.getAuthorizationData().get(0);
+        byte[] bytes = org.apache.commons.codec.binary.Base64.decodeBase64(authorizationData.getAuthorizationToken());
+        String data = new String(bytes, StandardCharsets.UTF_8);
+        String[] parts = data.split(":");
+        if (parts.length != 2) {
+            throw new RuntimeException("Got invalid authorizationData from AWS");
+        }
+        GetLoginPasswordResult result = new GetLoginPasswordResult(parts[0], parts[1]);
+        result.setRepositoryUri(StringUtils.removeStart(authorizationData.getProxyEndpoint(), "https://"));
+        return result;
+    }
+
+    @Override
+    public CreateImageRepositoryResult createImageRepository(
+            NexusRepoServerConfig serverConfig, String repo, boolean mutable) {
+        AmazonECR ecr = createECR(serverConfig);
+        // Repository repository;
+        CreateImageRepositoryResult result = new CreateImageRepositoryResult();
+        try {
+            DescribeRepositoriesRequest describeRepositoriesRequest = new DescribeRepositoriesRequest();
+            describeRepositoriesRequest.setRepositoryNames(Collections.singletonList(repo));
+            // DescribeRepositoriesResult describeRepositoriesResult =
+            ecr.describeRepositories(describeRepositoriesRequest);
+            // repository = describeRepositoriesResult.getRepositories().get(0);
+            result.setExists(true);
+        } catch (RepositoryNotFoundException e) {
+            // not found. create
+            CreateRepositoryRequest createRepositoryRequest = new CreateRepositoryRequest();
+            createRepositoryRequest
+                    .withImageTagMutability(mutable ? ImageTagMutability.MUTABLE : ImageTagMutability.IMMUTABLE)
+                    .withRepositoryName(repo);
+            // CreateRepositoryResult createRepositoryResult =
+            ecr.createRepository(createRepositoryRequest);
+            // repository = createRepositoryResult.getRepository();
+            result.setExists(false);
+        }
+
+        return result;
     }
 
     private AmazonECR createECR(NexusRepoServerConfig serverConfig) {

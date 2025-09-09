@@ -9,10 +9,10 @@ import hudson.model.ParameterDefinition;
 import hudson.model.ParameterValue;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import io.jenkins.plugins.nexus.choice.ArtifactChoiceHandler;
-import io.jenkins.plugins.nexus.choice.ArtifactChoiceHandlers;
 import io.jenkins.plugins.nexus.config.NexusRepoServerConfig;
 import io.jenkins.plugins.nexus.config.NexusRepoServerGlobalConfig;
+import io.jenkins.plugins.nexus.handler.ArtifactHandler;
+import io.jenkins.plugins.nexus.handler.ArtifactHandlers;
 import io.jenkins.plugins.nexus.model.resp.NexusRepositoryDetails;
 import io.jenkins.plugins.nexus.utils.*;
 import java.util.Arrays;
@@ -187,17 +187,11 @@ public class NexusArtifactChoicesParameterDefinition extends ParameterDefinition
             ListBoxModel items;
             NexusRepoServerConfig nxRepoCfg =
                     NexusRepoServerGlobalConfig.getConfig(serverId).orElseThrow();
-
-            if (nxRepoCfg.isDocker()) {
-                Registry registry = Utils.isNullOrEmpty(nxRepoCfg.getRegistry())
-                        ? Registry.NEXUS
-                        : Registry.valueOf(nxRepoCfg.getRegistry());
-                ArtifactChoiceHandler artifactChoiceHandler = ArtifactChoiceHandlers.getDockerHandler(registry);
-                items = artifactChoiceHandler.getItems(nxRepoCfg, option, repository, limits);
-            } else {
-                ArtifactChoiceHandler artifactChoiceHandler = ArtifactChoiceHandlers.getHandler();
-                items = artifactChoiceHandler.getItems(nxRepoCfg, option, repository, limits);
-            }
+            Registry registry = Utils.isNullOrEmpty(nxRepoCfg.getRegistry())
+                    ? Registry.NEXUS
+                    : Registry.valueOf(nxRepoCfg.getRegistry());
+            ArtifactHandler artifactHandler = ArtifactHandlers.getHandler(registry);
+            items = artifactHandler.getItems(nxRepoCfg, option, repository, limits);
 
             if (Utils.isNotEmpty(keyword)) {
                 // 筛选
