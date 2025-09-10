@@ -35,6 +35,6 @@
 
         <f:validateButton
                 title="Validate" progress="Validating..."
-                method="test" with="displayName,serverId,serverUrl,credentialsId,docker"/>
+                method="test" with="displayName,serverId,docker,region,registry,serverUrl,credentialsId"/>
     </div>
 </j:jelly>

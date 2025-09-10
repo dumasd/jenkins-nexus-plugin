@@ -121,11 +121,11 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
         public FormValidation doTest(
                 @QueryParameter("displayName") String displayName,
                 @QueryParameter("serverId") String serverId,
-                @QueryParameter("serverUrl") String serverUrl,
-                @QueryParameter("credentialsId") String credentialsId,
                 @QueryParameter("docker") boolean docker,
+                @QueryParameter("region") String region,
                 @QueryParameter("registry") String registry,
-                @QueryParameter("region") String region)
+                @QueryParameter("serverUrl") String serverUrl,
+                @QueryParameter("credentialsId") String credentialsId)
                 throws Exception {
             if (Utils.isNullOrEmpty(displayName)) {
                 return FormValidation.error("Please input Display Name");
@@ -140,15 +140,16 @@ public class NexusRepoServerConfig extends AbstractDescribableImpl<NexusRepoServ
                 return FormValidation.error("Invalid Server URL pattern");
             }
 
-            if (docker) {
-                Registry registryEnum = Registry.NEXUS;
-                if (!Utils.isNullOrEmpty(registry)) {
-                    try {
-                        registryEnum = Registry.valueOf(registry);
-                    } catch (IllegalArgumentException e) {
-                        return FormValidation.error("Invalid docker registry", e);
-                    }
+            Registry registryEnum = Registry.NEXUS;
+            if (!Utils.isNullOrEmpty(registry)) {
+                try {
+                    registryEnum = Registry.valueOf(registry);
+                } catch (IllegalArgumentException e) {
+                    return FormValidation.error("Invalid docker registry", e);
                 }
+            }
+
+            if (docker) {
                 if (Registry.NEXUS.equals(registryEnum)) {
                     String auth = credentialsIdToAuthorization(credentialsId);
                     NexusRepositoryClient client = new NexusRepositoryClient(serverUrl, auth, true);
